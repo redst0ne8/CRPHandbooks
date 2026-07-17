@@ -4,11 +4,10 @@ const DISCORD_REDIRECT_URI = process.env.DISCORD_REDIRECT_URI;
 const COOKIE_SECRET = process.env.COOKIE_SECRET || 'crp-staff-guides-secret-change-me';
 
 function sign(text, secret) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(text);
+    const data = text + secret;
     let hash = 0;
     for (let i = 0; i < data.length; i++) {
-        hash = ((hash << 5) - hash + data[i]) | 0;
+        hash = ((hash << 5) - hash + data.charCodeAt(i)) | 0;
     }
     return Math.abs(hash).toString(36);
 }
@@ -17,17 +16,13 @@ function parseCookies(cookieHeader) {
     const cookies = {};
     if (!cookieHeader) return cookies;
     cookieHeader.split(';').forEach(c => {
-        const [key, ...val] = c.split('=');
-        cookies[key.trim()] = val.join('=').trim();
+        const idx = c.indexOf('=');
+        if (idx === -1) return;
+        const key = c.slice(0, idx).trim();
+        const val = c.slice(idx + 1).trim();
+        cookies[key] = val;
     });
     return cookies;
-}
-
-function setSessionCookie(res, userId, avatar, username) {
-    const payload = JSON.stringify({ userId, avatar, username });
-    const encoded = Buffer.from(payload).toString('base64url');
-    const sig = sign(encoded, COOKIE_SECRET);
-    return `session=${encoded}.${sig}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=604800`;
 }
 
 export default async function handler(req, res) {
@@ -35,12 +30,14 @@ export default async function handler(req, res) {
     const cookies = parseCookies(req.headers.cookie);
 
     if (!code || !state) {
-        return res.redirect('/?error=missing_params');
+        res.writeHead(302, { 'Location': '/?error=missing_params' });
+        return res.end();
     }
 
     const expectedSig = sign(state, COOKIE_SECRET);
     if (cookies.oauth_state !== state || cookies.oauth_state_sig !== expectedSig) {
-        return res.redirect('/?error=invalid_state');
+        res.writeHead(302, { 'Location': '/?error=invalid_state' });
+        return res.end();
     }
 
     try {
@@ -59,7 +56,8 @@ export default async function handler(req, res) {
         const tokenData = await tokenRes.json();
 
         if (!tokenData.access_token) {
-            return res.redirect('/?error=token_failed');
+            res.writeHead(302, { 'Location': '/?error=token_failed' });
+            return res.end();
         }
 
         const userRes = await fetch('https://discord.com/api/users/@me', {
@@ -72,15 +70,22 @@ export default async function handler(req, res) {
             ? `https://cdn.discordapp.com/avatars/${userData.id}/${userData.avatar}.png?size=128`
             : `https://cdn.discordapp.com/embed/avatars/${parseInt(userData.discriminator) % 5}.png`;
 
-        res.setHeader('Set-Cookie', [
-            setSessionCookie(res, userData.id, avatarUrl, userData.username),
-            'oauth_state=; Path=/; HttpOnly; Secure; Max-Age=0',
-            'oauth_state_sig=; Path=/; HttpOnly; Secure; Max-Age=0'
-        ]);
+        const payload = JSON.stringify({ userId: userData.id, avatar: avatarUrl, username: userData.username });
+        const encoded = Buffer.from(payload).toString('base64url');
+        const sessionSig = sign(encoded, COOKIE_SECRET);
 
-        res.redirect('/');
+        res.writeHead(302, {
+            'Location': '/',
+            'Set-Cookie': [
+                `session=${encoded}.${sessionSig}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800`,
+                `oauth_state=; Path=/; HttpOnly; Max-Age=0`,
+                `oauth_state_sig=; Path=/; HttpOnly; Max-Age=0`
+            ]
+        });
+        res.end();
     } catch (err) {
         console.error('OAuth callback error:', err);
-        res.redirect('/?error=server_error');
+        res.writeHead(302, { 'Location': '/?error=server_error' });
+        res.end();
     }
 }
