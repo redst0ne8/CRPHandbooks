@@ -624,6 +624,55 @@ body {
     text-decoration: underline;
 }
 
+.collapsible {
+    margin: 1rem 0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.collapsible-trigger {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border: none;
+    padding: 0.75rem 1rem;
+    color: #ffffff;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.collapsible-trigger:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.collapsible-arrow {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.5);
+    transition: transform 0.2s;
+}
+
+.collapsible.open .collapsible-arrow {
+    transform: rotate(180deg);
+}
+
+.collapsible-content {
+    display: none;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.85);
+    line-height: 1.7;
+}
+
+.collapsible.open .collapsible-content {
+    display: block;
+}
+
 .pagination {
     margin-top: auto;
     padding-top: 2rem;

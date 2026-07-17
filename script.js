@@ -12,6 +12,17 @@ const EXECUTIVE_ROLE_ID = '1460812466454921358';
 const OWNERSHIP_ROLE_ID = '1522036995726250015';
 const EDITOR_USER_ID = '802937980897067059';
 
+const collapsibles = {
+    'staff_infractions_matrix': {
+        title: 'Staff Infractions Matrix',
+        content: '<p>Content for the Staff Infractions Matrix coming soon.</p>'
+    },
+    'chain_of_command': {
+        title: 'Chain of Command',
+        content: '<p>Content for the Chain of Command coming soon.</p>'
+    }
+};
+
 const defaultPages = {
     'welcome': {
         title: 'Welcome',
@@ -76,6 +87,14 @@ const defaultPages = {
         category: 'High Rank Guides',
         categoryFirstPage: 'high-rank',
         icon: 'assets/icons/resources.svg'
+    },
+    'data-management': {
+        title: 'Data Management',
+        content: '<p>This page is used to manage and reference staff data within the community.</p><h2>Data Guidelines</h2><p>All staff data should be handled with care. Below are the collapsible sections for key reference materials.</p><h3>Infractions</h3><p>[staff_infractions_matrix]</p><h3>Structure</h3><p>[chain_of_command]</p>',
+        lastUpdated: 'July 17th, 2026',
+        category: 'Introduction',
+        categoryFirstPage: 'welcome',
+        icon: 'assets/icons/clipboard.svg'
     }
 };
 
@@ -112,12 +131,23 @@ function clearSessionToken() {
 function getVisiblePages() {
     if (!isAuthenticated) return ['welcome'];
     if (userRole === 'highrank') {
-        return ['welcome', 'staff-welcome', 'hr-welcome', 'staff-guide-1', 'high-rank', 'duties', 'expectations', 'resources'];
+        return ['welcome', 'staff-welcome', 'hr-welcome', 'data-management', 'staff-guide-1', 'high-rank', 'duties', 'expectations', 'resources'];
     }
     if (userRole === 'staff') {
-        return ['welcome', 'staff-welcome', 'hr-welcome', 'staff-guide-1'];
+        return ['welcome', 'staff-welcome', 'hr-welcome', 'data-management', 'staff-guide-1'];
     }
     return ['welcome'];
+}
+
+function processShortcodes(html) {
+    return html.replace(/\[(\w+)\]/g, function(match, key) {
+        const c = collapsibles[key];
+        if (!c) return match;
+        return `<div class="collapsible" data-collapsible="${key}">
+            <button class="collapsible-trigger">${c.title}<span class="collapsible-arrow">&#9662;</span></button>
+            <div class="collapsible-content">${c.content}</div>
+        </div>`;
+    });
 }
 
 function updatePage(pageId) {
@@ -143,7 +173,13 @@ function updatePage(pageId) {
     const editBtn = document.getElementById('editContentBtn');
 
     pageTitle.textContent = activePage.title;
-    contentBody.innerHTML = activePage.content;
+    contentBody.innerHTML = processShortcodes(activePage.content);
+
+    contentBody.querySelectorAll('.collapsible-trigger').forEach(trigger => {
+        trigger.addEventListener('click', function() {
+            this.parentElement.classList.toggle('open');
+        });
+    });
     lastUpdatedEl.textContent = 'Last Updated: ' + activePage.lastUpdated;
     categoryLinkEl.textContent = activePage.category;
     categoryLinkEl.dataset.page = activePage.categoryFirstPage;
