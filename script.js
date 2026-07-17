@@ -29,6 +29,146 @@ function getVisiblePages() {
     return ['welcome'];
 }
 
+const pages = {
+    'welcome': {
+        title: 'Welcome',
+        content: '<p>As a high-ranking team member, your duties are more elevated. You\'re given more responsibilities for you to handle & monitor. It\'s crucial you do your weekly duties to ensure the community & staff team runs effortlessly.</p>',
+        lastUpdated: 'July 17th, 2026',
+        category: 'Introduction',
+        categoryFirstPage: 'welcome',
+        icon: 'assets/icons/wave.svg'
+    },
+    'staff-welcome': {
+        title: 'Staff Welcome',
+        content: '<p>Welcome to the staff team! This guide will help you understand your role and responsibilities as a staff member.</p>',
+        lastUpdated: 'July 17th, 2026',
+        category: 'Introduction',
+        categoryFirstPage: 'welcome',
+        icon: 'assets/icons/wave.svg'
+    },
+    'hr-welcome': {
+        title: 'HR Welcome',
+        content: '<p>As a high-ranking staff member, you have additional responsibilities and privileges. This page outlines what to expect in your role.</p>',
+        lastUpdated: 'July 17th, 2026',
+        category: 'Introduction',
+        categoryFirstPage: 'welcome',
+        icon: 'assets/icons/wave.svg'
+    },
+    'staff-guide-1': {
+        title: 'Staff Guide Overview',
+        content: '<p>This is a placeholder for the Staff Guides section. Content coming soon.</p>',
+        lastUpdated: 'July 17th, 2026',
+        category: 'Staff Guides',
+        categoryFirstPage: 'staff-guide-1',
+        icon: 'assets/icons/guidelines.svg'
+    },
+    'high-rank': {
+        title: 'High Rank Intro',
+        content: '<p>Welcome to the High Rank documentation section. Here you will find detailed information about your responsibilities and expectations.</p>',
+        lastUpdated: 'July 17th, 2026',
+        category: 'High Rank Guides',
+        categoryFirstPage: 'high-rank',
+        icon: 'assets/icons/high-rank.svg'
+    },
+    'duties': {
+        title: 'Weekly Duties',
+        content: '<p>Complete your assigned duties on time to maintain team efficiency and community standards.</p>',
+        lastUpdated: 'July 17th, 2026',
+        category: 'High Rank Guides',
+        categoryFirstPage: 'high-rank',
+        icon: 'assets/icons/duties.svg'
+    },
+    'expectations': {
+        title: 'Expectations',
+        content: '<p>Follow these guidelines to ensure consistent behavior and decision-making across the team.</p>',
+        lastUpdated: 'July 17th, 2026',
+        category: 'High Rank Guides',
+        categoryFirstPage: 'high-rank',
+        icon: 'assets/icons/expectations.svg'
+    },
+    'resources': {
+        title: 'Resources',
+        content: '<p>Access helpful resources, templates, and tools to assist you in your role.</p>',
+        lastUpdated: 'July 17th, 2026',
+        category: 'High Rank Guides',
+        categoryFirstPage: 'high-rank',
+        icon: 'assets/icons/resources.svg'
+    }
+};
+
+function updatePage(pageId) {
+    const page = pages[pageId];
+    if (!page) return;
+
+    const visiblePages = getVisiblePages();
+    if (!visiblePages.includes(pageId)) {
+        pageId = visiblePages[0];
+    }
+
+    const activePage = pages[pageId];
+    const pageTitle = document.querySelector('.page-title');
+    const contentBody = document.querySelector('.content-body');
+    const nextPageEl = document.getElementById('nextPage');
+    const prevPageEl = document.getElementById('prevPage');
+    const lastUpdatedEl = document.querySelector('.last-updated');
+    const categoryLinkEl = document.getElementById('categoryLink');
+    const titleIconEl = document.getElementById('titleIcon');
+    const navItems = document.querySelectorAll('.nav-item');
+
+    pageTitle.textContent = activePage.title;
+    contentBody.innerHTML = activePage.content;
+    lastUpdatedEl.textContent = 'Last Updated: ' + activePage.lastUpdated;
+    categoryLinkEl.textContent = activePage.category;
+    categoryLinkEl.dataset.page = activePage.categoryFirstPage;
+    titleIconEl.src = activePage.icon;
+
+    navItems.forEach(nav => {
+        nav.classList.remove('active');
+        if (nav.dataset.page === pageId) {
+            nav.classList.add('active');
+        }
+    });
+
+    const currentIndex = visiblePages.indexOf(pageId);
+    const nextIndex = currentIndex + 1;
+    const prevIndex = currentIndex - 1;
+
+    if (nextIndex < visiblePages.length) {
+        const nextPageId = visiblePages[nextIndex];
+        const nextPage = pages[nextPageId];
+        nextPageEl.style.display = 'flex';
+        nextPageEl.dataset.page = nextPageId;
+        nextPageEl.querySelector('.pagination-title').textContent = nextPage.title;
+    } else {
+        nextPageEl.style.display = 'none';
+    }
+
+    if (prevIndex >= 0) {
+        const prevPageId = visiblePages[prevIndex];
+        const prevPage = pages[prevPageId];
+        prevPageEl.style.display = 'flex';
+        prevPageEl.dataset.page = prevPageId;
+        prevPageEl.querySelector('.pagination-title').textContent = prevPage.title;
+    } else {
+        prevPageEl.style.display = 'none';
+    }
+
+    if (prevIndex < 0) {
+        nextPageEl.style.gridColumn = '1 / -1';
+        nextPageEl.style.alignItems = 'flex-end';
+    } else if (nextIndex >= visiblePages.length) {
+        prevPageEl.style.gridColumn = '1 / -1';
+        prevPageEl.style.alignItems = 'flex-start';
+    } else {
+        nextPageEl.style.gridColumn = '';
+        nextPageEl.style.alignItems = '';
+        prevPageEl.style.gridColumn = '';
+        prevPageEl.style.alignItems = '';
+    }
+
+    window.location.hash = pageId;
+}
+
 async function checkAuth() {
     const urlParams = new URLSearchParams(window.location.search);
     const sessionFromUrl = urlParams.get('session');
@@ -153,146 +293,8 @@ function updateAuthUI() {
     }
 }
 
-const pages = {
-    'welcome': {
-        title: 'Welcome',
-        content: '<p>As a high-ranking team member, your duties are more elevated. You\'re given more responsibilities for you to handle & monitor. It\'s crucial you do your weekly duties to ensure the community & staff team runs effortlessly.</p>',
-        lastUpdated: 'July 17th, 2026',
-        category: 'Introduction',
-        categoryFirstPage: 'welcome',
-        icon: 'assets/icons/wave.svg'
-    },
-    'staff-welcome': {
-        title: 'Staff Welcome',
-        content: '<p>Welcome to the staff team! This guide will help you understand your role and responsibilities as a staff member.</p>',
-        lastUpdated: 'July 17th, 2026',
-        category: 'Introduction',
-        categoryFirstPage: 'welcome',
-        icon: 'assets/icons/wave.svg'
-    },
-    'hr-welcome': {
-        title: 'HR Welcome',
-        content: '<p>As a high-ranking staff member, you have additional responsibilities and privileges. This page outlines what to expect in your role.</p>',
-        lastUpdated: 'July 17th, 2026',
-        category: 'Introduction',
-        categoryFirstPage: 'welcome',
-        icon: 'assets/icons/wave.svg'
-    },
-    'staff-guide-1': {
-        title: 'Staff Guide Overview',
-        content: '<p>This is a placeholder for the Staff Guides section. Content coming soon.</p>',
-        lastUpdated: 'July 17th, 2026',
-        category: 'Staff Guides',
-        categoryFirstPage: 'staff-guide-1',
-        icon: 'assets/icons/guidelines.svg'
-    },
-    'high-rank': {
-        title: 'High Rank Intro',
-        content: '<p>Welcome to the High Rank documentation section. Here you will find detailed information about your responsibilities and expectations.</p>',
-        lastUpdated: 'July 17th, 2026',
-        category: 'High Rank Guides',
-        categoryFirstPage: 'high-rank',
-        icon: 'assets/icons/high-rank.svg'
-    },
-    'duties': {
-        title: 'Weekly Duties',
-        content: '<p>Complete your assigned duties on time to maintain team efficiency and community standards.</p>',
-        lastUpdated: 'July 17th, 2026',
-        category: 'High Rank Guides',
-        categoryFirstPage: 'high-rank',
-        icon: 'assets/icons/duties.svg'
-    },
-    'expectations': {
-        title: 'Expectations',
-        content: '<p>Follow these guidelines to ensure consistent behavior and decision-making across the team.</p>',
-        lastUpdated: 'July 17th, 2026',
-        category: 'High Rank Guides',
-        categoryFirstPage: 'high-rank',
-        icon: 'assets/icons/expectations.svg'
-    },
-    'resources': {
-        title: 'Resources',
-        content: '<p>Access helpful resources, templates, and tools to assist you in your role.</p>',
-        lastUpdated: 'July 17th, 2026',
-        category: 'High Rank Guides',
-        categoryFirstPage: 'high-rank',
-        icon: 'assets/icons/resources.svg'
-    }
-};
-
 document.addEventListener('DOMContentLoaded', function() {
     const navItems = document.querySelectorAll('.nav-item');
-    const pageTitle = document.querySelector('.page-title');
-    const contentBody = document.querySelector('.content-body');
-    const nextPageEl = document.getElementById('nextPage');
-    const prevPageEl = document.getElementById('prevPage');
-    const lastUpdatedEl = document.querySelector('.last-updated');
-    const categoryLinkEl = document.getElementById('categoryLink');
-    const titleIconEl = document.getElementById('titleIcon');
-
-    function updatePage(pageId) {
-        const page = pages[pageId];
-        if (!page) return;
-
-        const visiblePages = getVisiblePages();
-        if (!visiblePages.includes(pageId)) {
-            pageId = visiblePages[0];
-        }
-
-        const activePage = pages[pageId];
-        pageTitle.textContent = activePage.title;
-        contentBody.innerHTML = activePage.content;
-        lastUpdatedEl.textContent = 'Last Updated: ' + activePage.lastUpdated;
-        categoryLinkEl.textContent = activePage.category;
-        categoryLinkEl.dataset.page = activePage.categoryFirstPage;
-        titleIconEl.src = activePage.icon;
-
-        navItems.forEach(nav => {
-            nav.classList.remove('active');
-            if (nav.dataset.page === pageId) {
-                nav.classList.add('active');
-            }
-        });
-
-        const currentIndex = visiblePages.indexOf(pageId);
-        const nextIndex = currentIndex + 1;
-        const prevIndex = currentIndex - 1;
-
-        if (nextIndex < visiblePages.length) {
-            const nextPageId = visiblePages[nextIndex];
-            const nextPage = pages[nextPageId];
-            nextPageEl.style.display = 'flex';
-            nextPageEl.dataset.page = nextPageId;
-            nextPageEl.querySelector('.pagination-title').textContent = nextPage.title;
-        } else {
-            nextPageEl.style.display = 'none';
-        }
-
-        if (prevIndex >= 0) {
-            const prevPageId = visiblePages[prevIndex];
-            const prevPage = pages[prevPageId];
-            prevPageEl.style.display = 'flex';
-            prevPageEl.dataset.page = prevPageId;
-            prevPageEl.querySelector('.pagination-title').textContent = prevPage.title;
-        } else {
-            prevPageEl.style.display = 'none';
-        }
-
-        if (prevIndex < 0) {
-            nextPageEl.style.gridColumn = '1 / -1';
-            nextPageEl.style.alignItems = 'flex-end';
-        } else if (nextIndex >= visiblePages.length) {
-            prevPageEl.style.gridColumn = '1 / -1';
-            prevPageEl.style.alignItems = 'flex-start';
-        } else {
-            nextPageEl.style.gridColumn = '';
-            nextPageEl.style.alignItems = '';
-            prevPageEl.style.gridColumn = '';
-            prevPageEl.style.alignItems = '';
-        }
-
-        window.location.hash = pageId;
-    }
 
     navItems.forEach(item => {
         item.addEventListener('click', function(e) {
@@ -301,15 +303,15 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    nextPageEl.addEventListener('click', function() {
+    document.getElementById('nextPage').addEventListener('click', function() {
         updatePage(this.dataset.page);
     });
 
-    prevPageEl.addEventListener('click', function() {
+    document.getElementById('prevPage').addEventListener('click', function() {
         updatePage(this.dataset.page);
     });
 
-    categoryLinkEl.addEventListener('click', function(e) {
+    document.getElementById('categoryLink').addEventListener('click', function(e) {
         e.preventDefault();
         updatePage(this.dataset.page);
     });
