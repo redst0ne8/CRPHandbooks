@@ -10,6 +10,14 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div class="welcome-overlay" id="welcomeOverlay">
+        <div class="welcome-card">
+            <img src="" alt="Avatar" class="welcome-avatar" id="welcomeAvatar">
+            <div class="welcome-text">Welcome, <span id="welcomeUsername"></span>!</div>
+            <div class="welcome-subtext">Logging in...</div>
+        </div>
+    </div>
+
     <nav class="top-nav">
         <div class="nav-left">
             <div class="logo-container">
@@ -56,21 +64,28 @@
                         HR Welcome
                     </a>
                 </div>
-                <div class="nav-section auth-required-section">
+                <div class="nav-section staff-required-section">
+                    <div class="nav-section-title">Staff Guides</div>
+                    <a href="#staff-guide-1" class="nav-item staff-required" data-page="staff-guide-1">
+                        <span class="nav-icon"><img src="assets/icons/guidelines.svg" alt=""></span>
+                        Staff Guide Overview
+                    </a>
+                </div>
+                <div class="nav-section highrank-required-section">
                     <div class="nav-section-title">High Rank Guides</div>
-                    <a href="#high-rank" class="nav-item" data-page="high-rank">
+                    <a href="#high-rank" class="nav-item highrank-required" data-page="high-rank">
                         <span class="nav-icon"><img src="assets/icons/high-rank.svg" alt=""></span>
                         High Rank Intro
                     </a>
-                    <a href="#duties" class="nav-item" data-page="duties">
+                    <a href="#duties" class="nav-item highrank-required" data-page="duties">
                         <span class="nav-icon"><img src="assets/icons/duties.svg" alt=""></span>
                         Weekly Duties
                     </a>
-                    <a href="#expectations" class="nav-item" data-page="expectations">
+                    <a href="#expectations" class="nav-item highrank-required" data-page="expectations">
                         <span class="nav-icon"><img src="assets/icons/expectations.svg" alt=""></span>
                         Expectations
                     </a>
-                    <a href="#resources" class="nav-item" data-page="resources">
+                    <a href="#resources" class="nav-item highrank-required" data-page="resources">
                         <span class="nav-icon"><img src="assets/icons/resources.svg" alt=""></span>
                         Resources
                     </a>
@@ -100,7 +115,7 @@
                     </div>
                     <div class="pagination-next" id="nextPage">
                         <span class="pagination-label">Next &gt;</span>
-                        <span class="pagination-title">High Rank Intro</span>
+                        <span class="pagination-title"></span>
                     </div>
                 </div>
             </div>

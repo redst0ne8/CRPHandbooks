@@ -13,6 +13,48 @@ body {
     flex-direction: column;
 }
 
+.welcome-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(10, 10, 20, 0.92);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(8px);
+}
+
+.welcome-overlay.show {
+    display: flex;
+}
+
+.welcome-card {
+    text-align: center;
+}
+
+.welcome-avatar {
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    border: 3px solid #4da6ff;
+    margin-bottom: 1.5rem;
+}
+
+.welcome-text {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 0.5rem;
+}
+
+.welcome-subtext {
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.4);
+}
+
 .top-nav {
     display: flex;
     justify-content: space-between;
@@ -241,15 +283,50 @@ body {
     display: none;
 }
 
-.nav-section.auth-required-section {
-    display: none;
-}
-
 .authenticated .nav-item.auth-required {
     display: flex;
 }
 
-.authenticated .nav-section.auth-required-section {
+.nav-item.staff-required {
+    display: none;
+}
+
+.nav-item.highrank-required {
+    display: none;
+}
+
+.nav-section.staff-required-section {
+    display: none;
+}
+
+.nav-section.highrank-required-section {
+    display: none;
+}
+
+.authenticated.role-staff .nav-item.staff-required,
+.authenticated.role-staff .nav-section.staff-required-section {
+    display: flex;
+}
+
+.authenticated.role-staff .nav-section.staff-required-section {
+    display: block;
+}
+
+.authenticated.role-highrank .nav-item.staff-required,
+.authenticated.role-highrank .nav-section.staff-required-section {
+    display: flex;
+}
+
+.authenticated.role-highrank .nav-section.staff-required-section {
+    display: block;
+}
+
+.authenticated.role-highrank .nav-item.highrank-required,
+.authenticated.role-highrank .nav-section.highrank-required-section {
+    display: flex;
+}
+
+.authenticated.role-highrank .nav-section.highrank-required-section {
     display: block;
 }
 
@@ -311,18 +388,6 @@ body {
     font-size: 2.5rem;
     font-weight: 700;
     color: #ffffff;
-}
-
-.header-image {
-    margin-bottom: 2rem;
-}
-
-.custom-image {
-    width: 100%;
-    max-width: 400px;
-    height: auto;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .content-body {

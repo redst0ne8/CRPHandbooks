@@ -1,8 +1,10 @@
-const authPages = ['welcome'];
-const allPages = ['welcome', 'staff-welcome', 'hr-welcome', 'high-rank', 'duties', 'expectations', 'resources'];
-
 let isAuthenticated = false;
 let currentUser = null;
+let userRole = null;
+
+const GUILD_ID = '1317032666331353099';
+const STAFF_ROLE_ID = '1460812651168010304';
+const HIGH_RANK_ROLE_ID = '1460812635846086656';
 
 function getSessionToken() {
     return localStorage.getItem('crp-session');
@@ -14,6 +16,17 @@ function setSessionToken(token) {
 
 function clearSessionToken() {
     localStorage.removeItem('crp-session');
+}
+
+function getVisiblePages() {
+    if (!isAuthenticated) return ['welcome'];
+    if (userRole === 'highrank') {
+        return ['welcome', 'staff-welcome', 'hr-welcome', 'staff-guide-1', 'high-rank', 'duties', 'expectations', 'resources'];
+    }
+    if (userRole === 'staff') {
+        return ['welcome', 'staff-welcome', 'hr-welcome', 'staff-guide-1'];
+    }
+    return ['welcome'];
 }
 
 async function checkAuth() {
@@ -46,7 +59,51 @@ async function checkAuth() {
     } catch (e) {
         isAuthenticated = false;
     }
-    updateAuthUI();
+
+    if (isAuthenticated && currentUser) {
+        showWelcomeOverlay();
+    } else {
+        updateAuthUI();
+    }
+}
+
+function showWelcomeOverlay() {
+    const overlay = document.getElementById('welcomeOverlay');
+    const avatar = document.getElementById('welcomeAvatar');
+    const username = document.getElementById('welcomeUsername');
+
+    avatar.src = currentUser.avatar;
+    username.textContent = currentUser.username;
+    overlay.classList.add('show');
+
+    setTimeout(async () => {
+        await checkRoles();
+        overlay.classList.remove('show');
+        updateAuthUI();
+    }, 2000);
+}
+
+async function checkRoles() {
+    const token = getSessionToken();
+    if (!token) return;
+
+    try {
+        const res = await fetch('/api/auth/roles', {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            if (data.isHighRank) {
+                userRole = 'highrank';
+            } else if (data.isStaff) {
+                userRole = 'staff';
+            } else {
+                userRole = null;
+            }
+        }
+    } catch (e) {
+        userRole = null;
+    }
 }
 
 function updateAuthUI() {
@@ -55,22 +112,32 @@ function updateAuthUI() {
     const userAvatar = document.getElementById('userAvatar');
     const body = document.body;
 
+    body.classList.remove('role-staff', 'role-highrank');
+
     if (isAuthenticated && currentUser) {
         loginBtn.style.display = 'none';
         userMenu.style.display = 'block';
         userAvatar.src = currentUser.avatar;
         body.classList.add('authenticated');
+
+        if (userRole === 'staff') {
+            body.classList.add('role-staff');
+        } else if (userRole === 'highrank') {
+            body.classList.add('role-highrank');
+        }
     } else {
         loginBtn.style.display = 'inline-block';
         userMenu.style.display = 'none';
         body.classList.remove('authenticated');
+        userRole = null;
     }
 
     const hash = window.location.hash.slice(1);
-    if (hash && pages[hash] && (isAuthenticated || authPages.includes(hash))) {
+    const visiblePages = getVisiblePages();
+    if (hash && pages[hash] && visiblePages.includes(hash)) {
         updatePage(hash);
     } else {
-        updatePage('welcome');
+        updatePage(visiblePages[0]);
     }
 }
 
@@ -98,6 +165,14 @@ const pages = {
         category: 'Introduction',
         categoryFirstPage: 'welcome',
         icon: 'assets/icons/wave.svg'
+    },
+    'staff-guide-1': {
+        title: 'Staff Guide Overview',
+        content: '<p>This is a placeholder for the Staff Guides section. Content coming soon.</p>',
+        lastUpdated: 'July 17th, 2026',
+        category: 'Staff Guides',
+        categoryFirstPage: 'staff-guide-1',
+        icon: 'assets/icons/guidelines.svg'
     },
     'high-rank': {
         title: 'High Rank Intro',
@@ -133,8 +208,6 @@ const pages = {
     }
 };
 
-const pageOrder = ['welcome', 'staff-welcome', 'hr-welcome', 'high-rank', 'duties', 'expectations', 'resources'];
-
 document.addEventListener('DOMContentLoaded', function() {
     const navItems = document.querySelectorAll('.nav-item');
     const pageTitle = document.querySelector('.page-title');
@@ -149,8 +222,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const page = pages[pageId];
         if (!page) return;
 
-        if (!isAuthenticated && pageId !== 'welcome') {
-            pageId = 'welcome';
+        const visiblePages = getVisiblePages();
+        if (!visiblePages.includes(pageId)) {
+            pageId = visiblePages[0];
         }
 
         const activePage = pages[pageId];
@@ -168,7 +242,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        const visiblePages = isAuthenticated ? allPages : authPages;
         const currentIndex = visiblePages.indexOf(pageId);
         const nextIndex = currentIndex + 1;
         const prevIndex = currentIndex - 1;
@@ -250,6 +323,7 @@ document.addEventListener('DOMContentLoaded', function() {
         clearSessionToken();
         isAuthenticated = false;
         currentUser = null;
+        userRole = null;
         updateAuthUI();
     });
 
