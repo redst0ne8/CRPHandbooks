@@ -54,11 +54,40 @@ export default async function handler(req, res) {
 
         const payload = JSON.parse(Buffer.from(encoded, 'base64url').toString());
 
+        let roleLabel = 'Not Staff';
+        let joinedAt = null;
+
+        try {
+            const memberRes = await fetch(
+                `https://discord.com/api/v10/guilds/${process.env.DISCORD_GUILD_ID || '1317032666331353099'}/members/${payload.userId}`,
+                {
+                    headers: {
+                        'Authorization': `Bot ${process.env.DISCORD_BOT_TOKEN}`,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+            if (memberRes.ok) {
+                const member = await memberRes.json();
+                joinedAt = member.joined_at || null;
+                const roles = member.roles || [];
+                const HIGH_RANK_ROLE_ID = '1460812635846086656';
+                const STAFF_ROLE_ID = '1460812651168010304';
+                if (roles.includes(HIGH_RANK_ROLE_ID)) {
+                    roleLabel = 'High Rank';
+                } else if (roles.includes(STAFF_ROLE_ID)) {
+                    roleLabel = 'Staff';
+                }
+            }
+        } catch (e) {}
+
         res.status(200).json({
             user: {
                 id: payload.userId,
                 avatar: payload.avatar,
-                username: payload.username
+                username: payload.username,
+                role: roleLabel,
+                joinedAt: joinedAt
             }
         });
     } catch (err) {

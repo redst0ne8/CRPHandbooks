@@ -103,6 +103,8 @@ function initSearch() {
 let isAuthenticated = false;
 let currentUser = null;
 let userRole = null;
+let userJoinedAt = null;
+let currentPageId = 'welcome';
 
 const GUILD_ID = '1317032666331353099';
 const STAFF_ROLE_ID = '1460812651168010304';
@@ -207,6 +209,8 @@ function updatePage(pageId) {
         pageId = visiblePages[0];
     }
 
+    currentPageId = pageId;
+
     const activePage = pages[pageId];
     const pageTitle = document.querySelector('.page-title');
     const contentBody = document.querySelector('.content-body');
@@ -294,6 +298,12 @@ async function checkAuth() {
             const data = await res.json();
             isAuthenticated = true;
             currentUser = data.user;
+            userJoinedAt = data.user.joinedAt || null;
+            if (data.user.role === 'High Rank') {
+                userRole = 'highrank';
+            } else if (data.user.role === 'Staff') {
+                userRole = 'staff';
+            }
         } else {
             clearSessionToken();
             isAuthenticated = false;
@@ -420,17 +430,49 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const userMenuTrigger = document.getElementById('userMenuTrigger');
     const dropdownMenu = document.getElementById('dropdownMenu');
+    const profileCard = document.getElementById('profileCard');
+    const myProfileBtn = document.getElementById('myProfileBtn');
 
     userMenuTrigger.addEventListener('click', function(e) {
         e.stopPropagation();
+        if (profileCard.classList.contains('visible')) {
+            profileCard.classList.remove('visible');
+        }
         dropdownMenu.classList.toggle('show');
+    });
+
+    myProfileBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        dropdownMenu.classList.remove('show');
+
+        if (currentUser) {
+            profileCard.querySelector('.profile-card-avatar').src = currentUser.avatar;
+            profileCard.querySelector('.profile-card-username').textContent = currentUser.username;
+            profileCard.querySelector('.profile-card-id').textContent = currentUser.id;
+            profileCard.querySelector('.profile-card-role').textContent = currentUser.role;
+
+            if (userJoinedAt) {
+                const d = new Date(userJoinedAt);
+                profileCard.querySelector('.profile-card-joined').textContent = 'Joined ' + d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            } else {
+                profileCard.querySelector('.profile-card-joined').textContent = '';
+            }
+        }
+
+        profileCard.classList.add('visible');
     });
 
     document.addEventListener('click', function() {
         dropdownMenu.classList.remove('show');
+        profileCard.classList.remove('visible');
     });
 
     dropdownMenu.addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
+
+    profileCard.addEventListener('click', function(e) {
         e.stopPropagation();
     });
 
@@ -441,9 +483,77 @@ document.addEventListener('DOMContentLoaded', function() {
         isAuthenticated = false;
         currentUser = null;
         userRole = null;
+        userJoinedAt = null;
+        profileCard.classList.remove('visible');
         updateAuthUI();
     });
 
     initSearch();
+
+    const reportModal = document.getElementById('reportModal');
+    const reportModalClose = document.getElementById('reportModalClose');
+    const reportDataBtn = document.getElementById('reportDataBtn');
+    const reportPageSelect = document.getElementById('reportPage');
+
+    function populatePageSelect() {
+        const visiblePages = getVisiblePages();
+        reportPageSelect.innerHTML = '<option value="">Select a page...</option>';
+        visiblePages.forEach(id => {
+            const p = pages[id];
+            if (!p) return;
+            const opt = document.createElement('option');
+            opt.value = id;
+            opt.textContent = p.title;
+            reportPageSelect.appendChild(opt);
+        });
+    }
+
+    function openReportModal(preselectedPage) {
+        populatePageSelect();
+        if (preselectedPage) {
+            reportPageSelect.value = preselectedPage;
+        }
+        document.getElementById('reportIssue').value = '';
+        document.getElementById('reportFix').value = '';
+        reportModal.classList.add('visible');
+    }
+
+    function closeReportModal() {
+        reportModal.classList.remove('visible');
+    }
+
+    document.getElementById('reportDataDropdownBtn').addEventListener('click', function(e) {
+        e.preventDefault();
+        dropdownMenu.classList.remove('show');
+        openReportModal(null);
+    });
+
+    document.getElementById('reportDataBtn').addEventListener('click', function(e) {
+        e.preventDefault();
+        openReportModal(currentPageId);
+    });
+
+    reportModalClose.addEventListener('click', closeReportModal);
+
+    reportModal.addEventListener('click', function(e) {
+        if (e.target === reportModal) closeReportModal();
+    });
+
+    document.getElementById('reportSubmitBtn').addEventListener('click', function() {
+        const page = reportPageSelect.value;
+        const issue = document.getElementById('reportIssue').value.trim();
+        const fix = document.getElementById('reportFix').value.trim();
+
+        if (!page || !issue) {
+            return;
+        }
+
+        closeReportModal();
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeReportModal();
+    });
+
     checkAuth();
 });

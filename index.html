@@ -40,9 +40,17 @@
                         <span class="carat">&#9662;</span>
                     </button>
                     <div class="dropdown-menu" id="dropdownMenu">
-                        <a href="#" class="dropdown-item">My Profile</a>
-                        <a href="#" class="dropdown-item">Report Data</a>
+                        <a href="#" class="dropdown-item" id="myProfileBtn">My Profile</a>
+                        <a href="#" class="dropdown-item" id="reportDataDropdownBtn">Report Data</a>
                         <a href="#" class="dropdown-item dropdown-logout" id="logoutBtn">Log Out</a>
+                    </div>
+                    <div class="profile-card" id="profileCard">
+                        <img src="" alt="Avatar" class="profile-card-avatar">
+                        <div class="profile-card-username"></div>
+                        <div class="profile-card-id"></div>
+                        <div class="profile-card-divider"></div>
+                        <div class="profile-card-role"></div>
+                        <div class="profile-card-joined"></div>
                     </div>
                 </div>
             </div>
@@ -110,7 +118,10 @@
             </div>
 
             <div class="pagination">
-                <div class="last-updated">Last Updated: July 17th, 2026</div>
+                <div class="pagination-meta">
+                    <div class="last-updated">Last Updated: July 17th, 2026</div>
+                    <button class="report-data-btn" id="reportDataBtn">Report Missing/Incorrect Data</button>
+                </div>
                 <div class="pagination-buttons">
                     <div class="pagination-back" id="prevPage" style="display: none;">
                         <span class="pagination-label">&lt; Back</span>
@@ -123,6 +134,34 @@
                 </div>
             </div>
         </main>
+    </div>
+
+    <div class="report-modal-overlay" id="reportModal">
+        <div class="report-modal">
+            <div class="report-modal-header">
+                <h3>Report Missing/Incorrect Data</h3>
+                <button class="report-modal-close" id="reportModalClose">&times;</button>
+            </div>
+            <div class="report-modal-body">
+                <div class="report-field">
+                    <label for="reportPage">Page</label>
+                    <select id="reportPage">
+                        <option value="">Select a page...</option>
+                    </select>
+                </div>
+                <div class="report-field">
+                    <label for="reportIssue">What is incorrect or missing?</label>
+                    <textarea id="reportIssue" rows="4" placeholder="Describe the issue..."></textarea>
+                </div>
+                <div class="report-field">
+                    <label for="reportFix">How should it be fixed?</label>
+                    <textarea id="reportFix" rows="4" placeholder="Describe the suggested fix..."></textarea>
+                </div>
+            </div>
+            <div class="report-modal-footer">
+                <button class="report-submit-btn" id="reportSubmitBtn">Submit Report</button>
+            </div>
+        </div>
     </div>
 
     <footer class="footer">
