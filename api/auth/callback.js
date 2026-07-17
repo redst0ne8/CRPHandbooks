@@ -76,7 +76,7 @@ export default async function handler(req, res) {
             setSessionCookie(res, userData.id, avatarUrl, userData.username),
             'oauth_state=; Path=/; HttpOnly; Secure; Max-Age=0',
             'oauth_state_sig=; Path=/; HttpOnly; Secure; Max-Age=0'
-        ].join(', '));
+        ]);
 
         res.redirect('/');
     } catch (err) {

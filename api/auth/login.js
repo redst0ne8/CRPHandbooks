@@ -26,7 +26,7 @@ export default async function handler(req, res) {
     res.setHeader('Set-Cookie', [
         `oauth_state=${state}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=600`,
         `oauth_state_sig=${signed}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=600`
-    ].join(', '));
+    ]);
 
     const params = new URLSearchParams({
         client_id: DISCORD_CLIENT_ID,

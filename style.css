@@ -175,22 +175,6 @@ body {
     background: rgba(255, 85, 85, 0.1);
 }
 
-.auth-required {
-    display: none;
-}
-
-.auth-required-section {
-    display: none;
-}
-
-.authenticated .auth-required {
-    display: flex;
-}
-
-.authenticated .auth-required-section {
-    display: block;
-}
-
 .main-container {
     display: flex;
     margin-top: 65px;
@@ -251,6 +235,22 @@ body {
 .nav-item.active {
     color: #4da6ff;
     background: rgba(77, 166, 255, 0.1);
+}
+
+.nav-item.auth-required {
+    display: none;
+}
+
+.nav-section.auth-required-section {
+    display: none;
+}
+
+.authenticated .nav-item.auth-required {
+    display: flex;
+}
+
+.authenticated .nav-section.auth-required-section {
+    display: block;
 }
 
 .nav-section {
@@ -341,6 +341,10 @@ body {
     padding-top: 2rem;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     padding-bottom: 1rem;
+}
+
+body:not(.authenticated) .pagination {
+    display: none;
 }
 
 .last-updated {
