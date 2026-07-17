@@ -326,6 +326,10 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 10px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 201;
 }
 
 .profile-card.visible {
@@ -567,12 +571,6 @@ body:not(.authenticated) .pagination {
     display: none;
 }
 
-.last-updated {
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.35);
-    margin-bottom: 1.5rem;
-}
-
 .pagination-buttons {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -624,27 +622,32 @@ body:not(.authenticated) .pagination {
 
 .pagination-meta {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    align-items: baseline;
     gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.last-updated {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.35);
+    margin-bottom: 0;
 }
 
 .report-data-btn {
-    background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: rgba(255, 255, 255, 0.6);
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.35);
     font-family: 'DM Sans', sans-serif;
-    font-size: 0.75rem;
-    padding: 0.35rem 0.75rem;
-    border-radius: 6px;
+    font-size: 0.8rem;
+    padding: 0;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: color 0.2s;
     white-space: nowrap;
+    text-decoration: none;
 }
 
 .report-data-btn:hover {
-    border-color: #4da6ff;
-    color: #4da6ff;
+    color: #ff5555;
 }
 
 .report-modal-overlay {
