@@ -20,7 +20,31 @@ const collapsibles = {
     'chain_of_command': {
         title: 'Chain of Command',
         content: '<p>Content for the Chain of Command coming soon.</p>'
-    }
+    },
+    'task_staffapps': {
+        title: 'Staff Applications Task',
+        content: '<p>placeholder</p>'
+    },
+    'task_gameappeals': {
+        title: 'Game Appeals Task',
+        content: '<p>placeholder</p>'
+    },
+    'task_dcbanappeals': {
+        title: 'Discord Ban Appeals Task',
+        content: '<p>placeholder</p>'
+    },
+    'task_interntest': {
+        title: 'Intern Phase 2 Test Reading Task',
+        content: '<p>placeholder</p>'
+    },
+    'task_inactivitynotices': {
+        title: 'Inactivity Notices Task',
+        content: '<p>placeholder</p>'
+    },
+    'task_evaluations': {
+        title: 'Staff Evaluations Task',
+        content: '<p>placeholder</p>'
+    },
 };
 
 const defaultPages = {
