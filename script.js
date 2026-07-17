@@ -676,51 +676,52 @@ document.addEventListener('DOMContentLoaded', function() {
 
     initSearch();
 
+    checkAuth();
+});
+
+let editMode = 'page';
+let editingCollapsibleKey = null;
+
+function openEditModal(title, label, markdownContent) {
+    const modal = document.getElementById('editModal');
+    modal.querySelector('h3').textContent = title;
+    modal.querySelector('.edit-field label').textContent = label;
+    document.getElementById('editContentArea').value = markdownContent;
+    modal.classList.add('visible');
+}
+
+function closeEditModal() {
+    document.getElementById('editModal').classList.remove('visible');
+}
+
+function openCollapsibleEditModal(key, c) {
+    editMode = 'collapsible';
+    editingCollapsibleKey = key;
+    openEditModal('Edit ' + c.title, 'Content (Markdown)', htmlToMarkdown(c.content));
+}
+
+function openPageEditModal() {
+    const page = pages[currentPageId];
+    if (!page) return;
+    editMode = 'page';
+    editingCollapsibleKey = null;
+    openEditModal('Edit Content', 'Page Content (Markdown)', htmlToMarkdown(page.content));
+}
+
+document.addEventListener('DOMContentLoaded', function() {
     const editModal = document.getElementById('editModal');
-    const editModalClose = document.getElementById('editModalClose');
-    const editCancelBtn = document.getElementById('editCancelBtn');
-    const editSaveBtn = document.getElementById('editSaveBtn');
-    const editContentArea = document.getElementById('editContentArea');
-    const editModalTitle = editModal.querySelector('h3');
-    const editFieldLabel = editModal.querySelector('.edit-field label');
 
-    let editMode = 'page';
-    let editingCollapsibleKey = null;
+    document.getElementById('editContentBtn').addEventListener('click', openPageEditModal);
 
-    function openCollapsibleEditModal(key, c) {
-        editMode = 'collapsible';
-        editingCollapsibleKey = key;
-        editModalTitle.textContent = 'Edit ' + c.title;
-        editFieldLabel.textContent = 'Content (Markdown)';
-        editContentArea.value = htmlToMarkdown(c.content);
-        editModal.classList.add('visible');
-    }
-
-    document.getElementById('editContentBtn').addEventListener('click', function() {
-        const page = pages[currentPageId];
-        if (!page) return;
-        editMode = 'page';
-        editingCollapsibleKey = null;
-        editModalTitle.textContent = 'Edit Content';
-        editFieldLabel.textContent = 'Page Content (Markdown)';
-        editContentArea.value = htmlToMarkdown(page.content);
-        editModal.classList.add('visible');
-    });
-
-    editModalClose.addEventListener('click', function() {
-        editModal.classList.remove('visible');
-    });
-
-    editCancelBtn.addEventListener('click', function() {
-        editModal.classList.remove('visible');
-    });
+    document.getElementById('editModalClose').addEventListener('click', closeEditModal);
+    document.getElementById('editCancelBtn').addEventListener('click', closeEditModal);
 
     editModal.addEventListener('click', function(e) {
-        if (e.target === editModal) editModal.classList.remove('visible');
+        if (e.target === editModal) closeEditModal();
     });
 
-    editSaveBtn.addEventListener('click', async function() {
-        const markdown = editContentArea.value;
+    document.getElementById('editSaveBtn').addEventListener('click', async function() {
+        const markdown = document.getElementById('editContentArea').value;
         const html = markdownToHtml(markdown);
         const token = getSessionToken();
 
@@ -736,7 +737,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     body: JSON.stringify({ type: 'collapsible', collapsibleId: editingCollapsibleKey, content: html })
                 });
             } catch (e) {}
-            editModal.classList.remove('visible');
+            closeEditModal();
             updatePage(currentPageId);
         } else {
             pages[currentPageId].content = html;
@@ -750,16 +751,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     body: JSON.stringify({ pageId: currentPageId, content: html })
                 });
             } catch (e) {}
-            editModal.classList.remove('visible');
+            closeEditModal();
             updatePage(currentPageId);
         }
     });
 
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            editModal.classList.remove('visible');
-        }
+        if (e.key === 'Escape') closeEditModal();
     });
-
-    checkAuth();
 });
