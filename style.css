@@ -89,6 +89,21 @@ body {
 .nav-left {
     display: flex;
     align-items: center;
+    flex: 1;
+}
+
+.nav-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+}
+
+.nav-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex: 1;
 }
 
 .logo-container {
@@ -117,6 +132,8 @@ body {
 
 .search-container {
     position: relative;
+    flex: 1;
+    max-width: 500px;
 }
 
 .search-input {
@@ -127,8 +144,8 @@ body {
     color: #ffffff;
     font-family: 'DM Sans', sans-serif;
     font-size: 0.9rem;
-    width: 250px;
-    transition: border-color 0.3s, width 0.3s;
+    width: 100%;
+    transition: border-color 0.3s;
 }
 
 .search-input::placeholder {
@@ -138,7 +155,6 @@ body {
 .search-input:focus {
     outline: none;
     border-color: #4da6ff;
-    width: 300px;
 }
 
 .account-btn {
