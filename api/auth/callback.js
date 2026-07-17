@@ -12,30 +12,23 @@ function sign(text, secret) {
     return Math.abs(hash).toString(36);
 }
 
-function parseCookies(cookieHeader) {
-    const cookies = {};
-    if (!cookieHeader) return cookies;
-    cookieHeader.split(';').forEach(c => {
-        const idx = c.indexOf('=');
-        if (idx === -1) return;
-        const key = c.slice(0, idx).trim();
-        const val = c.slice(idx + 1).trim();
-        cookies[key] = val;
-    });
-    return cookies;
-}
-
 export default async function handler(req, res) {
     const { code, state } = req.query;
-    const cookies = parseCookies(req.headers.cookie);
 
     if (!code || !state) {
         res.writeHead(302, { 'Location': '/?error=missing_params' });
         return res.end();
     }
 
-    const expectedSig = sign(state, COOKIE_SECRET);
-    if (cookies.oauth_state !== state || cookies.oauth_state_sig !== expectedSig) {
+    const parts = state.split('.');
+    if (parts.length !== 2) {
+        res.writeHead(302, { 'Location': '/?error=invalid_state' });
+        return res.end();
+    }
+
+    const [stateValue, stateSig] = parts;
+    const expectedSig = sign(stateValue, COOKIE_SECRET);
+    if (stateSig !== expectedSig) {
         res.writeHead(302, { 'Location': '/?error=invalid_state' });
         return res.end();
     }
@@ -70,17 +63,13 @@ export default async function handler(req, res) {
             ? `https://cdn.discordapp.com/avatars/${userData.id}/${userData.avatar}.png?size=128`
             : `https://cdn.discordapp.com/embed/avatars/${parseInt(userData.discriminator) % 5}.png`;
 
-        const payload = JSON.stringify({ userId: userData.id, avatar: avatarUrl, username: userData.username });
-        const encoded = Buffer.from(payload).toString('base64url');
+        const payload = { userId: userData.id, avatar: avatarUrl, username: userData.username };
+        const encoded = Buffer.from(JSON.stringify(payload)).toString('base64url');
         const sessionSig = sign(encoded, COOKIE_SECRET);
+        const sessionToken = `${encoded}.${sessionSig}`;
 
         res.writeHead(302, {
-            'Location': '/',
-            'Set-Cookie': [
-                `session=${encoded}.${sessionSig}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800`,
-                `oauth_state=; Path=/; HttpOnly; Max-Age=0`,
-                `oauth_state_sig=; Path=/; HttpOnly; Max-Age=0`
-            ]
+            'Location': `/?session=${sessionToken}`
         });
         res.end();
     } catch (err) {

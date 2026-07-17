@@ -13,21 +13,39 @@ function parseCookies(cookieHeader) {
     const cookies = {};
     if (!cookieHeader) return cookies;
     cookieHeader.split(';').forEach(c => {
-        const [key, ...val] = c.split('=');
-        cookies[key.trim()] = val.join('=').trim();
+        const idx = c.indexOf('=');
+        if (idx === -1) return;
+        cookies[c.slice(0, idx).trim()] = c.slice(idx + 1).trim();
     });
     return cookies;
 }
 
 export default async function handler(req, res) {
-    const cookies = parseCookies(req.headers.cookie);
+    let token = null;
 
-    if (!cookies.session) {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.slice(7);
+    }
+
+    if (!token) {
+        const cookies = parseCookies(req.headers.cookie);
+        if (cookies.session) {
+            token = cookies.session;
+        }
+    }
+
+    if (!token) {
         return res.status(401).json({ error: 'Not authenticated' });
     }
 
     try {
-        const [encoded, sig] = cookies.session.split('.');
+        const parts = token.split('.');
+        if (parts.length !== 2) {
+            return res.status(401).json({ error: 'Invalid session' });
+        }
+
+        const [encoded, sig] = parts;
         const expectedSig = sign(encoded, COOKIE_SECRET);
 
         if (sig !== expectedSig) {

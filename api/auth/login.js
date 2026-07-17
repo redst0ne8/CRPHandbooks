@@ -23,21 +23,19 @@ function sign(text, secret) {
 export default async function handler(req, res) {
     const state = generateState();
     const sig = sign(state, COOKIE_SECRET);
+    const stateParam = `${state}.${sig}`;
 
     const params = new URLSearchParams({
         client_id: DISCORD_CLIENT_ID,
         redirect_uri: DISCORD_REDIRECT_URI,
         response_type: 'code',
         scope: 'identify',
-        state: state
+        state: stateParam
     });
 
+    res.setHeader('Cache-Control', 'no-store');
     res.writeHead(302, {
-        'Location': `https://discord.com/api/oauth2/authorize?${params.toString()}`,
-        'Set-Cookie': [
-            `oauth_state=${state}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600`,
-            `oauth_state_sig=${sig}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600`
-        ]
+        'Location': `https://discord.com/api/oauth2/authorize?${params.toString()}`
     });
     res.end();
 }

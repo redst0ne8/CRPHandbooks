@@ -4,14 +4,44 @@ const allPages = ['welcome', 'staff-welcome', 'hr-welcome', 'high-rank', 'duties
 let isAuthenticated = false;
 let currentUser = null;
 
+function getSessionToken() {
+    return localStorage.getItem('crp-session');
+}
+
+function setSessionToken(token) {
+    localStorage.setItem('crp-session', token);
+}
+
+function clearSessionToken() {
+    localStorage.removeItem('crp-session');
+}
+
 async function checkAuth() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionFromUrl = urlParams.get('session');
+    if (sessionFromUrl) {
+        setSessionToken(sessionFromUrl);
+        window.history.replaceState({}, '', window.location.pathname + window.location.hash);
+    }
+
+    const token = getSessionToken();
+    if (!token) {
+        isAuthenticated = false;
+        updateAuthUI();
+        return;
+    }
+
     try {
-        const res = await fetch('/api/auth/me');
+        const res = await fetch('/api/auth/me', {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
         if (res.ok) {
             const data = await res.json();
             isAuthenticated = true;
             currentUser = data.user;
-            updateAuthUI();
+        } else {
+            clearSessionToken();
+            isAuthenticated = false;
         }
     } catch (e) {
         isAuthenticated = false;
@@ -37,7 +67,7 @@ function updateAuthUI() {
     }
 
     const hash = window.location.hash.slice(1);
-    if (hash && pages[hash]) {
+    if (hash && pages[hash] && (isAuthenticated || authPages.includes(hash))) {
         updatePage(hash);
     } else {
         updatePage('welcome');
@@ -143,8 +173,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const nextIndex = currentIndex + 1;
         const prevIndex = currentIndex - 1;
 
-        if (nextIndex < pageOrder.length) {
-            const nextPageId = pageOrder[nextIndex];
+        if (nextIndex < visiblePages.length) {
+            const nextPageId = visiblePages[nextIndex];
             const nextPage = pages[nextPageId];
             nextPageEl.style.display = 'flex';
             nextPageEl.dataset.page = nextPageId;
@@ -154,7 +184,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         if (prevIndex >= 0) {
-            const prevPageId = pageOrder[prevIndex];
+            const prevPageId = visiblePages[prevIndex];
             const prevPage = pages[prevPageId];
             prevPageEl.style.display = 'flex';
             prevPageEl.dataset.page = prevPageId;
@@ -166,7 +196,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (prevIndex < 0) {
             nextPageEl.style.gridColumn = '1 / -1';
             nextPageEl.style.alignItems = 'flex-end';
-        } else if (nextIndex >= pageOrder.length) {
+        } else if (nextIndex >= visiblePages.length) {
             prevPageEl.style.gridColumn = '1 / -1';
             prevPageEl.style.alignItems = 'flex-start';
         } else {
@@ -213,6 +243,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     dropdownMenu.addEventListener('click', function(e) {
         e.stopPropagation();
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', function(e) {
+        e.preventDefault();
+        clearSessionToken();
+        isAuthenticated = false;
+        currentUser = null;
+        updateAuthUI();
     });
 
     checkAuth();
