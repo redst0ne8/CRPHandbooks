@@ -8,7 +8,8 @@ body {
     font-family: 'DM Sans', sans-serif;
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
     color: #ffffff;
-    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
 }
@@ -375,7 +376,9 @@ body {
     display: flex;
     margin-top: 65px;
     padding: 20px;
+    padding-bottom: 80px;
     flex: 1;
+    overflow-y: auto;
 }
 
 .sidebar {
@@ -933,10 +936,16 @@ body:not(.authenticated) .pagination {
 }
 
 .footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
     text-align: center;
     padding: 1.25rem;
     color: rgba(255, 255, 255, 0.4);
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     font-size: 0.85rem;
-    flex-shrink: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(10px);
+    z-index: 100;
 }
