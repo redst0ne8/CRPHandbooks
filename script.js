@@ -62,6 +62,7 @@ async function checkAuth() {
 
     if (isAuthenticated && currentUser) {
         if (sessionStorage.getItem('crp-welcomed')) {
+            await checkRoles();
             updateAuthUI();
         } else {
             showWelcomeOverlay();
