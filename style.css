@@ -705,7 +705,7 @@ body {
     margin-top: auto;
     padding-top: 2rem;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
-    padding-bottom: 1rem;
+    padding-bottom: 3.5rem;
 }
 
 body:not(.authenticated) .pagination {
