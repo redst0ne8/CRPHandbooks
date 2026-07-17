@@ -1,3 +1,94 @@
+function searchPages(query) {
+    const results = [];
+    const q = query.toLowerCase().trim();
+    if (!q) return results;
+
+    const visiblePages = getVisiblePages();
+
+    for (const [id, page] of Object.entries(pages)) {
+        if (!visiblePages.includes(id)) continue;
+        const titleMatch = page.title.toLowerCase().includes(q);
+        const contentText = page.content.replace(/<[^>]+>/g, '').toLowerCase();
+        const contentMatch = contentText.includes(q);
+        if (titleMatch || contentMatch) {
+            results.push({ id, title: page.title, category: page.category, titleMatch });
+        }
+    }
+
+    results.sort((a, b) => (b.titleMatch ? 1 : 0) - (a.titleMatch ? 1 : 0));
+    return results;
+}
+
+function handleSearch() {
+    const input = document.getElementById('searchInput');
+    const resultsContainer = document.getElementById('searchResults');
+    const query = input.value;
+
+    if (!query.trim()) {
+        resultsContainer.classList.remove('visible');
+        resultsContainer.innerHTML = '';
+        return;
+    }
+
+    const results = searchPages(query);
+    resultsContainer.innerHTML = '';
+
+    if (results.length === 0) {
+        resultsContainer.innerHTML = '<div class="search-no-results">No results found.</div>';
+        resultsContainer.classList.add('visible');
+        return;
+    }
+
+    const toShow = results.slice(0, 5);
+    toShow.forEach(r => {
+        const item = document.createElement('div');
+        item.className = 'search-result-item';
+        item.innerHTML = `<div class="search-result-category">${r.category}</div><div class="search-result-title">${r.title}</div>`;
+        item.addEventListener('click', () => {
+            updatePage(r.id);
+            input.value = '';
+            resultsContainer.classList.remove('visible');
+            resultsContainer.innerHTML = '';
+        });
+        resultsContainer.appendChild(item);
+    });
+
+    if (results.length > 5) {
+        const more = document.createElement('div');
+        more.className = 'search-more';
+        more.textContent = `Show More — ${results.length - 5} Result${results.length - 5 > 1 ? 's' : ''}`;
+        more.addEventListener('click', () => {
+            input.value = '';
+            resultsContainer.classList.remove('visible');
+            resultsContainer.innerHTML = '';
+        });
+        resultsContainer.appendChild(more);
+    }
+
+    resultsContainer.classList.add('visible');
+}
+
+let searchTimeout;
+function initSearch() {
+    const input = document.getElementById('searchInput');
+    const resultsContainer = document.getElementById('searchResults');
+
+    input.addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(handleSearch, 200);
+    });
+
+    input.addEventListener('focus', () => {
+        if (input.value.trim()) handleSearch();
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.search-container')) {
+            resultsContainer.classList.remove('visible');
+        }
+    });
+}
+
 let isAuthenticated = false;
 let currentUser = null;
 let userRole = null;
@@ -342,5 +433,6 @@ document.addEventListener('DOMContentLoaded', function() {
         updateAuthUI();
     });
 
+    initSearch();
     checkAuth();
 });
