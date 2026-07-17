@@ -1,11 +1,10 @@
 const COOKIE_SECRET = process.env.COOKIE_SECRET || 'crp-staff-guides-secret-change-me';
 
 function sign(text, secret) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(text);
+    const data = text + secret;
     let hash = 0;
     for (let i = 0; i < data.length; i++) {
-        hash = ((hash << 5) - hash + data[i]) | 0;
+        hash = ((hash << 5) - hash + data.charCodeAt(i)) | 0;
     }
     return Math.abs(hash).toString(36);
 }
