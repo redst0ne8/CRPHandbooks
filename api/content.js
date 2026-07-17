@@ -84,9 +84,13 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
         try {
             const pageData = await redis.get('pages');
-            return res.status(200).json({ pages: pageData || {} });
+            const collapsibleData = await redis.get('collapsibles');
+            return res.status(200).json({
+                pages: pageData || {},
+                collapsibles: collapsibleData || {}
+            });
         } catch (e) {
-            return res.status(200).json({ pages: {} });
+            return res.status(200).json({ pages: {}, collapsibles: {} });
         }
     }
 
@@ -101,7 +105,27 @@ export default async function handler(req, res) {
             return res.status(403).json({ error: 'Not authorized to edit' });
         }
 
-        const { pageId, content } = req.body || {};
+        const { type, pageId, collapsibleId, content } = req.body || {};
+
+        if (type === 'collapsible') {
+            if (!collapsibleId || content === undefined) {
+                return res.status(400).json({ error: 'collapsibleId and content are required' });
+            }
+
+            try {
+                const existing = (await redis.get('collapsibles')) || {};
+                existing[collapsibleId] = {
+                    content: content,
+                    updatedBy: session.username,
+                    updatedAt: new Date().toISOString()
+                };
+                await redis.set('collapsibles', existing);
+                return res.status(200).json({ success: true });
+            } catch (e) {
+                return res.status(500).json({ error: 'Failed to save collapsible content' });
+            }
+        }
+
         if (!pageId || content === undefined) {
             return res.status(400).json({ error: 'pageId and content are required' });
         }

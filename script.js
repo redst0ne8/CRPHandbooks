@@ -99,6 +99,7 @@ const defaultPages = {
 };
 
 let pages = JSON.parse(JSON.stringify(defaultPages));
+const defaultCollapsibles = JSON.parse(JSON.stringify(collapsibles));
 
 function canEdit() {
     if (!currentUser) return false;
@@ -143,8 +144,14 @@ function processShortcodes(html) {
     return html.replace(/\[(\w+)\]/g, function(match, key) {
         const c = collapsibles[key];
         if (!c) return match;
+        const editBtn = canEdit()
+            ? `<button class="collapsible-edit-btn" data-collapsible="${key}" title="Edit section">&#9998;</button>`
+            : '';
         return `<div class="collapsible" data-collapsible="${key}">
-            <button class="collapsible-trigger">${c.title}<span class="collapsible-arrow">&#9662;</span></button>
+            <div class="collapsible-header">
+                <button class="collapsible-trigger">${c.title}<span class="collapsible-arrow">&#9662;</span></button>
+                ${editBtn}
+            </div>
             <div class="collapsible-content">${c.content}</div>
         </div>`;
     });
@@ -177,7 +184,17 @@ function updatePage(pageId) {
 
     contentBody.querySelectorAll('.collapsible-trigger').forEach(trigger => {
         trigger.addEventListener('click', function() {
-            this.parentElement.classList.toggle('open');
+            this.closest('.collapsible').classList.toggle('open');
+        });
+    });
+
+    contentBody.querySelectorAll('.collapsible-edit-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const key = this.dataset.collapsible;
+            const c = collapsibles[key];
+            if (!c) return;
+            openCollapsibleEditModal(key, c);
         });
     });
     lastUpdatedEl.textContent = 'Last Updated: ' + activePage.lastUpdated;
@@ -248,6 +265,13 @@ async function loadContent() {
                     if (pages[id]) {
                         pages[id].content = page.content;
                         if (page.lastUpdated) pages[id].lastUpdated = page.lastUpdated;
+                    }
+                }
+            }
+            if (data.collapsibles) {
+                for (const [id, c] of Object.entries(data.collapsibles)) {
+                    if (collapsibles[id]) {
+                        collapsibles[id].content = c.content;
                     }
                 }
             }
@@ -646,6 +670,7 @@ document.addEventListener('DOMContentLoaded', function() {
         userJoinedAt = null;
         profileCard.classList.remove('visible');
         pages = JSON.parse(JSON.stringify(defaultPages));
+        Object.assign(collapsibles, JSON.parse(JSON.stringify(defaultCollapsibles)));
         updateAuthUI();
     });
 
@@ -656,10 +681,28 @@ document.addEventListener('DOMContentLoaded', function() {
     const editCancelBtn = document.getElementById('editCancelBtn');
     const editSaveBtn = document.getElementById('editSaveBtn');
     const editContentArea = document.getElementById('editContentArea');
+    const editModalTitle = editModal.querySelector('h3');
+    const editFieldLabel = editModal.querySelector('.edit-field label');
+
+    let editMode = 'page';
+    let editingCollapsibleKey = null;
+
+    function openCollapsibleEditModal(key, c) {
+        editMode = 'collapsible';
+        editingCollapsibleKey = key;
+        editModalTitle.textContent = 'Edit ' + c.title;
+        editFieldLabel.textContent = 'Content (Markdown)';
+        editContentArea.value = htmlToMarkdown(c.content);
+        editModal.classList.add('visible');
+    }
 
     document.getElementById('editContentBtn').addEventListener('click', function() {
         const page = pages[currentPageId];
         if (!page) return;
+        editMode = 'page';
+        editingCollapsibleKey = null;
+        editModalTitle.textContent = 'Edit Content';
+        editFieldLabel.textContent = 'Page Content (Markdown)';
         editContentArea.value = htmlToMarkdown(page.content);
         editModal.classList.add('visible');
     });
@@ -681,21 +724,35 @@ document.addEventListener('DOMContentLoaded', function() {
         const html = markdownToHtml(markdown);
         const token = getSessionToken();
 
-        pages[currentPageId].content = html;
-
-        try {
-            await fetch('/api/content', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + token
-                },
-                body: JSON.stringify({ pageId: currentPageId, content: html })
-            });
-        } catch (e) {}
-
-        editModal.classList.remove('visible');
-        updatePage(currentPageId);
+        if (editMode === 'collapsible' && editingCollapsibleKey) {
+            collapsibles[editingCollapsibleKey].content = html;
+            try {
+                await fetch('/api/content', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({ type: 'collapsible', collapsibleId: editingCollapsibleKey, content: html })
+                });
+            } catch (e) {}
+            editModal.classList.remove('visible');
+            updatePage(currentPageId);
+        } else {
+            pages[currentPageId].content = html;
+            try {
+                await fetch('/api/content', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({ pageId: currentPageId, content: html })
+                });
+            } catch (e) {}
+            editModal.classList.remove('visible');
+            updatePage(currentPageId);
+        }
     });
 
     document.addEventListener('keydown', function(e) {
