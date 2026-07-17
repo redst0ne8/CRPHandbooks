@@ -1,6 +1,6 @@
 const COOKIE_SECRET = process.env.COOKIE_SECRET || 'crp-staff-guides-secret-change-me';
 const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
-const DISCORD_GUILD_ID = '1317032666331353099';
+const DISCORD_GUILD_ID = process.env.DISCORD_GUILD_ID || '1317032666331353099';
 const STAFF_ROLE_ID = '1460812651168010304';
 const HIGH_RANK_ROLE_ID = '1460812635846086656';
 
@@ -44,7 +44,7 @@ export default async function handler(req, res) {
         );
 
         if (!memberRes.ok) {
-            return res.status(200).json({ isStaff: false, isHighRank: false });
+            return res.status(200).json({ isStaff: false, isHighRank: false, roles: [] });
         }
 
         const member = await memberRes.json();
@@ -53,9 +53,8 @@ export default async function handler(req, res) {
         const isStaff = roles.includes(STAFF_ROLE_ID);
         const isHighRank = roles.includes(HIGH_RANK_ROLE_ID);
 
-        res.status(200).json({ isStaff, isHighRank });
+        res.status(200).json({ isStaff, isHighRank, roles });
     } catch (err) {
-        console.error('Role check error:', err);
-        res.status(200).json({ isStaff: false, isHighRank: false });
+        res.status(200).json({ isStaff: false, isHighRank: false, roles: [] });
     }
 }

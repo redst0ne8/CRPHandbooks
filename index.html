@@ -41,7 +41,6 @@
                     </button>
                     <div class="dropdown-menu" id="dropdownMenu">
                         <a href="#" class="dropdown-item" id="myProfileBtn">My Profile</a>
-                        <a href="#" class="dropdown-item" id="reportDataDropdownBtn">Report Data</a>
                         <a href="#" class="dropdown-item dropdown-logout" id="logoutBtn">Log Out</a>
                     </div>
                     <div class="profile-card" id="profileCard">
@@ -113,14 +112,14 @@
                 </div>
             </div>
             
-            <div class="content-body">
-                <p>As a high-ranking team member, your duties are more elevated. You're given more responsibilities for you to handle & monitor. It's crucial you do your weekly duties to ensure the community & staff team runs effortlessly.</p>
+            <div class="content-body" id="contentBody">
+                <p>Loading...</p>
             </div>
 
             <div class="pagination">
                 <div class="pagination-meta">
                     <div class="last-updated">Last Updated: July 17th, 2026</div>
-                    <button class="report-data-btn" id="reportDataBtn">Report Missing/Incorrect Data</button>
+                    <button class="edit-content-btn" id="editContentBtn" style="display: none;">Edit Content</button>
                 </div>
                 <div class="pagination-buttons">
                     <div class="pagination-back" id="prevPage" style="display: none;">
@@ -136,30 +135,24 @@
         </main>
     </div>
 
-    <div class="report-modal-overlay" id="reportModal">
-        <div class="report-modal">
-            <div class="report-modal-header">
-                <h3>Report Missing/Incorrect Data</h3>
-                <button class="report-modal-close" id="reportModalClose">&times;</button>
+    <div class="edit-modal-overlay" id="editModal">
+        <div class="edit-modal">
+            <div class="edit-modal-header">
+                <h3>Edit Content</h3>
+                <button class="edit-modal-close" id="editModalClose">&times;</button>
             </div>
-            <div class="report-modal-body">
-                <div class="report-field">
-                    <label for="reportPage">Page</label>
-                    <select id="reportPage">
-                        <option value="">Select a page...</option>
-                    </select>
+            <div class="edit-modal-body">
+                <div class="edit-field">
+                    <label for="editContentArea">Page Content (Markdown)</label>
+                    <textarea id="editContentArea" rows="16" placeholder="Write your content here using markdown..."></textarea>
                 </div>
-                <div class="report-field">
-                    <label for="reportIssue">What is incorrect or missing?</label>
-                    <textarea id="reportIssue" rows="4" placeholder="Describe the issue..."></textarea>
-                </div>
-                <div class="report-field">
-                    <label for="reportFix">How should it be fixed?</label>
-                    <textarea id="reportFix" rows="4" placeholder="Describe the suggested fix..."></textarea>
+                <div class="edit-hint">
+                    <strong>Markdown:</strong> **bold**, *italic*, # Heading, - list item, [text](url), &gt; quote
                 </div>
             </div>
-            <div class="report-modal-footer">
-                <button class="report-submit-btn" id="reportSubmitBtn">Submit Report</button>
+            <div class="edit-modal-footer">
+                <button class="edit-cancel-btn" id="editCancelBtn">Cancel</button>
+                <button class="edit-save-btn" id="editSaveBtn">Save</button>
             </div>
         </div>
     </div>

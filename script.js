@@ -1,139 +1,18 @@
-function searchPages(query) {
-    const results = [];
-    const q = query.toLowerCase().trim();
-    if (!q) return results;
-
-    const visiblePages = getVisiblePages();
-
-    for (const [id, page] of Object.entries(pages)) {
-        if (!visiblePages.includes(id)) continue;
-        const titleMatch = page.title.toLowerCase().includes(q);
-        const contentText = page.content.replace(/<[^>]+>/g, '').toLowerCase();
-        const contentMatch = contentText.includes(q);
-        if (titleMatch || contentMatch) {
-            results.push({ id, title: page.title, category: page.category, titleMatch });
-        }
-    }
-
-    results.sort((a, b) => (b.titleMatch ? 1 : 0) - (a.titleMatch ? 1 : 0));
-    return results;
-}
-
-let searchAllExpanded = false;
-let lastSearchResults = [];
-
-function handleSearch() {
-    const input = document.getElementById('searchInput');
-    const resultsContainer = document.getElementById('searchResults');
-    const query = input.value;
-
-    searchAllExpanded = false;
-
-    if (!query.trim()) {
-        resultsContainer.classList.remove('visible');
-        resultsContainer.innerHTML = '';
-        lastSearchResults = [];
-        return;
-    }
-
-    const results = searchPages(query);
-    lastSearchResults = results;
-    renderSearchResults(resultsContainer, results);
-}
-
-function renderSearchResults(resultsContainer, results, expanded) {
-    resultsContainer.innerHTML = '';
-
-    if (results.length === 0) {
-        resultsContainer.innerHTML = '<div class="search-no-results">No results found.</div>';
-        resultsContainer.classList.add('visible');
-        return;
-    }
-
-    const toShow = expanded ? results : results.slice(0, 5);
-    toShow.forEach(r => {
-        const item = document.createElement('div');
-        item.className = 'search-result-item';
-        item.innerHTML = `<div class="search-result-category">${r.category}</div><div class="search-result-title">${r.title}</div>`;
-        item.addEventListener('click', () => {
-            updatePage(r.id);
-            document.getElementById('searchInput').value = '';
-            resultsContainer.classList.remove('visible');
-            resultsContainer.innerHTML = '';
-        });
-        resultsContainer.appendChild(item);
-    });
-
-    if (!expanded && results.length > 5) {
-        const more = document.createElement('div');
-        more.className = 'search-more';
-        more.textContent = `Show More — ${results.length - 5} Result${results.length - 5 > 1 ? 's' : ''}`;
-        more.addEventListener('click', (e) => {
-            e.stopPropagation();
-            searchAllExpanded = true;
-            renderSearchResults(resultsContainer, lastSearchResults, true);
-        });
-        resultsContainer.appendChild(more);
-    }
-
-    resultsContainer.classList.add('visible');
-}
-
-let searchTimeout;
-function initSearch() {
-    const input = document.getElementById('searchInput');
-    const resultsContainer = document.getElementById('searchResults');
-
-    input.addEventListener('input', () => {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(handleSearch, 200);
-    });
-
-    input.addEventListener('focus', () => {
-        if (input.value.trim()) handleSearch();
-    });
-
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('.search-container')) {
-            resultsContainer.classList.remove('visible');
-        }
-    });
-}
-
 let isAuthenticated = false;
 let currentUser = null;
 let userRole = null;
 let userJoinedAt = null;
+let userRoles = [];
 let currentPageId = 'welcome';
 
 const GUILD_ID = '1317032666331353099';
 const STAFF_ROLE_ID = '1460812651168010304';
 const HIGH_RANK_ROLE_ID = '1460812635846086656';
+const EXECUTIVE_ROLE_ID = '1460812466454921358';
+const OWNERSHIP_ROLE_ID = '1522036995726250015';
+const EDITOR_USER_ID = '802937980897067059';
 
-function getSessionToken() {
-    return localStorage.getItem('crp-session');
-}
-
-function setSessionToken(token) {
-    localStorage.setItem('crp-session', token);
-}
-
-function clearSessionToken() {
-    localStorage.removeItem('crp-session');
-}
-
-function getVisiblePages() {
-    if (!isAuthenticated) return ['welcome'];
-    if (userRole === 'highrank') {
-        return ['welcome', 'staff-welcome', 'hr-welcome', 'staff-guide-1', 'high-rank', 'duties', 'expectations', 'resources'];
-    }
-    if (userRole === 'staff') {
-        return ['welcome', 'staff-welcome', 'hr-welcome', 'staff-guide-1'];
-    }
-    return ['welcome'];
-}
-
-const pages = {
+const defaultPages = {
     'welcome': {
         title: 'Welcome',
         content: '<p>As a high-ranking team member, your duties are more elevated. You\'re given more responsibilities for you to handle & monitor. It\'s crucial you do your weekly duties to ensure the community & staff team runs effortlessly.</p>',
@@ -200,6 +79,47 @@ const pages = {
     }
 };
 
+let pages = JSON.parse(JSON.stringify(defaultPages));
+
+function canEdit() {
+    if (!currentUser) return false;
+    if (currentUser.id === EDITOR_USER_ID) return true;
+    if (userRoles.includes(EXECUTIVE_ROLE_ID)) return true;
+    if (userRoles.includes(OWNERSHIP_ROLE_ID)) return true;
+    return false;
+}
+
+function getRoleLabel() {
+    if (userRoles.includes(OWNERSHIP_ROLE_ID)) return 'Ownership';
+    if (userRoles.includes(EXECUTIVE_ROLE_ID)) return 'Executive';
+    if (userRole === 'highrank') return 'High Rank';
+    if (userRole === 'staff') return 'Staff';
+    return 'Not Staff';
+}
+
+function getSessionToken() {
+    return localStorage.getItem('crp-session');
+}
+
+function setSessionToken(token) {
+    localStorage.setItem('crp-session', token);
+}
+
+function clearSessionToken() {
+    localStorage.removeItem('crp-session');
+}
+
+function getVisiblePages() {
+    if (!isAuthenticated) return ['welcome'];
+    if (userRole === 'highrank') {
+        return ['welcome', 'staff-welcome', 'hr-welcome', 'staff-guide-1', 'high-rank', 'duties', 'expectations', 'resources'];
+    }
+    if (userRole === 'staff') {
+        return ['welcome', 'staff-welcome', 'hr-welcome', 'staff-guide-1'];
+    }
+    return ['welcome'];
+}
+
 function updatePage(pageId) {
     const page = pages[pageId];
     if (!page) return;
@@ -213,13 +133,14 @@ function updatePage(pageId) {
 
     const activePage = pages[pageId];
     const pageTitle = document.querySelector('.page-title');
-    const contentBody = document.querySelector('.content-body');
+    const contentBody = document.getElementById('contentBody');
     const nextPageEl = document.getElementById('nextPage');
     const prevPageEl = document.getElementById('prevPage');
     const lastUpdatedEl = document.querySelector('.last-updated');
     const categoryLinkEl = document.getElementById('categoryLink');
     const titleIconEl = document.getElementById('titleIcon');
     const navItems = document.querySelectorAll('.nav-item');
+    const editBtn = document.getElementById('editContentBtn');
 
     pageTitle.textContent = activePage.title;
     contentBody.innerHTML = activePage.content;
@@ -227,6 +148,12 @@ function updatePage(pageId) {
     categoryLinkEl.textContent = activePage.category;
     categoryLinkEl.dataset.page = activePage.categoryFirstPage;
     titleIconEl.src = activePage.icon;
+
+    if (canEdit()) {
+        editBtn.style.display = 'inline-block';
+    } else {
+        editBtn.style.display = 'none';
+    }
 
     navItems.forEach(nav => {
         nav.classList.remove('active');
@@ -275,6 +202,98 @@ function updatePage(pageId) {
     window.location.hash = pageId;
 }
 
+async function loadContent() {
+    try {
+        const res = await fetch('/api/content');
+        if (res.ok) {
+            const data = await res.json();
+            if (data.pages) {
+                for (const [id, page] of Object.entries(data.pages)) {
+                    if (pages[id]) {
+                        pages[id].content = page.content;
+                        if (page.lastUpdated) pages[id].lastUpdated = page.lastUpdated;
+                    }
+                }
+            }
+        }
+    } catch (e) {}
+}
+
+function htmlToMarkdown(html) {
+    let md = html;
+    md = md.replace(/<h1[^>]*>(.*?)<\/h1>/gi, '# $1\n');
+    md = md.replace(/<h2[^>]*>(.*?)<\/h2>/gi, '## $1\n');
+    md = md.replace(/<h3[^>]*>(.*?)<\/h3>/gi, '### $1\n');
+    md = md.replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**');
+    md = md.replace(/<b[^>]*>(.*?)<\/b>/gi, '**$1**');
+    md = md.replace(/<em[^>]*>(.*?)<\/em>/gi, '*$1*');
+    md = md.replace(/<i[^>]*>(.*?)<\/i>/gi, '*$1*');
+    md = md.replace(/<a[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>/gi, '[$2]($1)');
+    md = md.replace(/<li[^>]*>(.*?)<\/li>/gi, '- $1\n');
+    md = md.replace(/<br\s*\/?>/gi, '\n');
+    md = md.replace(/<p[^>]*>(.*?)<\/p>/gi, '$1\n\n');
+    md = md.replace(/<blockquote[^>]*>(.*?)<\/blockquote>/gi, '> $1\n');
+    md = md.replace(/<hr\s*\/?>/gi, '---\n');
+    md = md.replace(/<code[^>]*>(.*?)<\/code>/gi, '`$1`');
+    md = md.replace(/<[^>]+>/g, '');
+    md = md.replace(/&amp;/g, '&');
+    md = md.replace(/&lt;/g, '<');
+    md = md.replace(/&gt;/g, '>');
+    md = md.replace(/&quot;/g, '"');
+    md = md.replace(/&#39;/g, "'");
+    md = md.replace(/\n{3,}/g, '\n\n');
+    return md.trim();
+}
+
+function markdownToHtml(md) {
+    let html = md;
+    html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+    html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+    html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    html = html.replace(/`(.+?)`/g, '<code>$1</code>');
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+    html = html.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
+    html = html.replace(/^---$/gm, '<hr>');
+    html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+
+    const lines = html.split('\n');
+    let result = '';
+    let inList = false;
+    let inBlockquote = false;
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+
+        if (line.startsWith('<li>')) {
+            if (!inList) {
+                result += '<ul>\n';
+                inList = true;
+            }
+            result += line + '\n';
+        } else {
+            if (inList) {
+                result += '</ul>\n';
+                inList = false;
+            }
+            if (line.startsWith('<blockquote>')) {
+                result += line + '\n';
+            } else if (line.startsWith('<h') || line.startsWith('<hr') || line.startsWith('<ul')) {
+                result += line + '\n';
+            } else if (line.trim() === '') {
+                result += '\n';
+            } else {
+                result += '<p>' + line + '</p>\n';
+            }
+        }
+    }
+
+    if (inList) result += '</ul>\n';
+    result = result.replace(/\n{3,}/g, '\n\n');
+    return result.trim();
+}
+
 async function checkAuth() {
     const urlParams = new URLSearchParams(window.location.search);
     const sessionFromUrl = urlParams.get('session');
@@ -299,6 +318,7 @@ async function checkAuth() {
             isAuthenticated = true;
             currentUser = data.user;
             userJoinedAt = data.user.joinedAt || null;
+            userRoles = data.user.roles || [];
             if (data.user.role === 'High Rank') {
                 userRole = 'highrank';
             } else if (data.user.role === 'Staff') {
@@ -315,36 +335,39 @@ async function checkAuth() {
     if (isAuthenticated && currentUser) {
         if (sessionStorage.getItem('crp-welcomed')) {
             await checkRoles();
-            updateAuthUI();
         } else {
-            showWelcomeOverlay();
+            await showWelcomeOverlay();
         }
-    } else {
-        updateAuthUI();
     }
+
+    await loadContent();
+    updateAuthUI();
 }
 
 function showWelcomeOverlay() {
-    const overlay = document.getElementById('welcomeOverlay');
-    const avatar = document.getElementById('welcomeAvatar');
-    const username = document.getElementById('welcomeUsername');
+    return new Promise(async (resolve) => {
+        const overlay = document.getElementById('welcomeOverlay');
+        const avatar = document.getElementById('welcomeAvatar');
+        const username = document.getElementById('welcomeUsername');
 
-    avatar.src = currentUser.avatar;
-    username.textContent = currentUser.username;
-    overlay.classList.add('show');
+        avatar.src = currentUser.avatar;
+        username.textContent = currentUser.username;
+        overlay.classList.add('show');
 
-    sessionStorage.setItem('crp-welcomed', '1');
+        sessionStorage.setItem('crp-welcomed', '1');
 
-    setTimeout(async () => {
         await checkRoles();
-        overlay.classList.remove('show');
-        overlay.classList.add('hiding');
-        overlay.addEventListener('animationend', function handler() {
-            overlay.classList.remove('hiding');
-            overlay.removeEventListener('animationend', handler);
-        });
-        updateAuthUI();
-    }, 2000);
+
+        setTimeout(() => {
+            overlay.classList.remove('show');
+            overlay.classList.add('hiding');
+            overlay.addEventListener('animationend', function handler() {
+                overlay.classList.remove('hiding');
+                overlay.removeEventListener('animationend', handler);
+            });
+            resolve();
+        }, 2000);
+    });
 }
 
 async function checkRoles() {
@@ -357,6 +380,7 @@ async function checkRoles() {
         });
         if (res.ok) {
             const data = await res.json();
+            userRoles = data.roles || [];
             if (data.isHighRank) {
                 userRole = 'highrank';
             } else if (data.isStaff) {
@@ -394,6 +418,7 @@ function updateAuthUI() {
         userMenu.style.display = 'none';
         body.classList.remove('authenticated');
         userRole = null;
+        userRoles = [];
     }
 
     const hash = window.location.hash.slice(1);
@@ -403,6 +428,104 @@ function updateAuthUI() {
     } else {
         updatePage(visiblePages[0]);
     }
+}
+
+function searchPages(query) {
+    const results = [];
+    const q = query.toLowerCase().trim();
+    if (!q) return results;
+
+    const visiblePages = getVisiblePages();
+
+    for (const [id, page] of Object.entries(pages)) {
+        if (!visiblePages.includes(id)) continue;
+        const titleMatch = page.title.toLowerCase().includes(q);
+        const contentText = page.content.replace(/<[^>]+>/g, '').toLowerCase();
+        const contentMatch = contentText.includes(q);
+        if (titleMatch || contentMatch) {
+            results.push({ id, title: page.title, category: page.category, titleMatch });
+        }
+    }
+
+    results.sort((a, b) => (b.titleMatch ? 1 : 0) - (a.titleMatch ? 1 : 0));
+    return results;
+}
+
+let lastSearchResults = [];
+
+function handleSearch() {
+    const input = document.getElementById('searchInput');
+    const resultsContainer = document.getElementById('searchResults');
+    const query = input.value;
+
+    if (!query.trim()) {
+        resultsContainer.classList.remove('visible');
+        resultsContainer.innerHTML = '';
+        lastSearchResults = [];
+        return;
+    }
+
+    const results = searchPages(query);
+    lastSearchResults = results;
+    renderSearchResults(resultsContainer, results, false);
+}
+
+function renderSearchResults(resultsContainer, results, expanded) {
+    resultsContainer.innerHTML = '';
+
+    if (results.length === 0) {
+        resultsContainer.innerHTML = '<div class="search-no-results">No results found.</div>';
+        resultsContainer.classList.add('visible');
+        return;
+    }
+
+    const toShow = expanded ? results : results.slice(0, 5);
+    toShow.forEach(r => {
+        const item = document.createElement('div');
+        item.className = 'search-result-item';
+        item.innerHTML = `<div class="search-result-category">${r.category}</div><div class="search-result-title">${r.title}</div>`;
+        item.addEventListener('click', () => {
+            updatePage(r.id);
+            document.getElementById('searchInput').value = '';
+            resultsContainer.classList.remove('visible');
+            resultsContainer.innerHTML = '';
+        });
+        resultsContainer.appendChild(item);
+    });
+
+    if (!expanded && results.length > 5) {
+        const more = document.createElement('div');
+        more.className = 'search-more';
+        more.textContent = `Show More — ${results.length - 5} Result${results.length - 5 > 1 ? 's' : ''}`;
+        more.addEventListener('click', (e) => {
+            e.stopPropagation();
+            renderSearchResults(resultsContainer, results, true);
+        });
+        resultsContainer.appendChild(more);
+    }
+
+    resultsContainer.classList.add('visible');
+}
+
+let searchTimeout;
+function initSearch() {
+    const input = document.getElementById('searchInput');
+    const resultsContainer = document.getElementById('searchResults');
+
+    input.addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(handleSearch, 200);
+    });
+
+    input.addEventListener('focus', () => {
+        if (input.value.trim()) handleSearch();
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.search-container')) {
+            resultsContainer.classList.remove('visible');
+        }
+    });
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -450,7 +573,7 @@ document.addEventListener('DOMContentLoaded', function() {
             profileCard.querySelector('.profile-card-avatar').src = currentUser.avatar;
             profileCard.querySelector('.profile-card-username').textContent = currentUser.username;
             profileCard.querySelector('.profile-card-id').textContent = currentUser.id;
-            profileCard.querySelector('.profile-card-role').textContent = currentUser.role;
+            profileCard.querySelector('.profile-card-role').textContent = getRoleLabel();
 
             if (userJoinedAt) {
                 const d = new Date(userJoinedAt);
@@ -483,76 +606,66 @@ document.addEventListener('DOMContentLoaded', function() {
         isAuthenticated = false;
         currentUser = null;
         userRole = null;
+        userRoles = [];
         userJoinedAt = null;
         profileCard.classList.remove('visible');
+        pages = JSON.parse(JSON.stringify(defaultPages));
         updateAuthUI();
     });
 
     initSearch();
 
-    const reportModal = document.getElementById('reportModal');
-    const reportModalClose = document.getElementById('reportModalClose');
-    const reportDataBtn = document.getElementById('reportDataBtn');
-    const reportPageSelect = document.getElementById('reportPage');
+    const editModal = document.getElementById('editModal');
+    const editModalClose = document.getElementById('editModalClose');
+    const editCancelBtn = document.getElementById('editCancelBtn');
+    const editSaveBtn = document.getElementById('editSaveBtn');
+    const editContentArea = document.getElementById('editContentArea');
 
-    function populatePageSelect() {
-        const visiblePages = getVisiblePages();
-        reportPageSelect.innerHTML = '<option value="">Select a page...</option>';
-        visiblePages.forEach(id => {
-            const p = pages[id];
-            if (!p) return;
-            const opt = document.createElement('option');
-            opt.value = id;
-            opt.textContent = p.title;
-            reportPageSelect.appendChild(opt);
-        });
-    }
-
-    function openReportModal(preselectedPage) {
-        populatePageSelect();
-        if (preselectedPage) {
-            reportPageSelect.value = preselectedPage;
-        }
-        document.getElementById('reportIssue').value = '';
-        document.getElementById('reportFix').value = '';
-        reportModal.classList.add('visible');
-    }
-
-    function closeReportModal() {
-        reportModal.classList.remove('visible');
-    }
-
-    document.getElementById('reportDataDropdownBtn').addEventListener('click', function(e) {
-        e.preventDefault();
-        dropdownMenu.classList.remove('show');
-        openReportModal(null);
+    document.getElementById('editContentBtn').addEventListener('click', function() {
+        const page = pages[currentPageId];
+        if (!page) return;
+        editContentArea.value = htmlToMarkdown(page.content);
+        editModal.classList.add('visible');
     });
 
-    document.getElementById('reportDataBtn').addEventListener('click', function(e) {
-        e.preventDefault();
-        openReportModal(currentPageId);
+    editModalClose.addEventListener('click', function() {
+        editModal.classList.remove('visible');
     });
 
-    reportModalClose.addEventListener('click', closeReportModal);
-
-    reportModal.addEventListener('click', function(e) {
-        if (e.target === reportModal) closeReportModal();
+    editCancelBtn.addEventListener('click', function() {
+        editModal.classList.remove('visible');
     });
 
-    document.getElementById('reportSubmitBtn').addEventListener('click', function() {
-        const page = reportPageSelect.value;
-        const issue = document.getElementById('reportIssue').value.trim();
-        const fix = document.getElementById('reportFix').value.trim();
+    editModal.addEventListener('click', function(e) {
+        if (e.target === editModal) editModal.classList.remove('visible');
+    });
 
-        if (!page || !issue) {
-            return;
-        }
+    editSaveBtn.addEventListener('click', async function() {
+        const markdown = editContentArea.value;
+        const html = markdownToHtml(markdown);
+        const token = getSessionToken();
 
-        closeReportModal();
+        pages[currentPageId].content = html;
+
+        try {
+            await fetch('/api/content', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify({ pageId: currentPageId, content: html })
+            });
+        } catch (e) {}
+
+        editModal.classList.remove('visible');
+        updatePage(currentPageId);
     });
 
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') closeReportModal();
+        if (e.key === 'Escape') {
+            editModal.classList.remove('visible');
+        }
     });
 
     checkAuth();

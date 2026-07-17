@@ -1,4 +1,9 @@
 const COOKIE_SECRET = process.env.COOKIE_SECRET || 'crp-staff-guides-secret-change-me';
+const GUILD_ID = process.env.DISCORD_GUILD_ID || '1317032666331353099';
+const STAFF_ROLE_ID = '1460812651168010304';
+const HIGH_RANK_ROLE_ID = '1460812635846086656';
+const EXECUTIVE_ROLE_ID = '1460812466454921358';
+const OWNERSHIP_ROLE_ID = '1522036995726250015';
 
 function sign(text, secret) {
     const data = text + secret;
@@ -55,11 +60,12 @@ export default async function handler(req, res) {
         const payload = JSON.parse(Buffer.from(encoded, 'base64url').toString());
 
         let roleLabel = 'Not Staff';
+        let roles = [];
         let joinedAt = null;
 
         try {
             const memberRes = await fetch(
-                `https://discord.com/api/v10/guilds/${process.env.DISCORD_GUILD_ID || '1317032666331353099'}/members/${payload.userId}`,
+                `https://discord.com/api/v10/guilds/${GUILD_ID}/members/${payload.userId}`,
                 {
                     headers: {
                         'Authorization': `Bot ${process.env.DISCORD_BOT_TOKEN}`,
@@ -70,10 +76,13 @@ export default async function handler(req, res) {
             if (memberRes.ok) {
                 const member = await memberRes.json();
                 joinedAt = member.joined_at || null;
-                const roles = member.roles || [];
-                const HIGH_RANK_ROLE_ID = '1460812635846086656';
-                const STAFF_ROLE_ID = '1460812651168010304';
-                if (roles.includes(HIGH_RANK_ROLE_ID)) {
+                roles = member.roles || [];
+
+                if (roles.includes(OWNERSHIP_ROLE_ID)) {
+                    roleLabel = 'Ownership';
+                } else if (roles.includes(EXECUTIVE_ROLE_ID)) {
+                    roleLabel = 'Executive';
+                } else if (roles.includes(HIGH_RANK_ROLE_ID)) {
                     roleLabel = 'High Rank';
                 } else if (roles.includes(STAFF_ROLE_ID)) {
                     roleLabel = 'Staff';
@@ -87,6 +96,7 @@ export default async function handler(req, res) {
                 avatar: payload.avatar,
                 username: payload.username,
                 role: roleLabel,
+                roles: roles,
                 joinedAt: joinedAt
             }
         });
