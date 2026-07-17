@@ -19,18 +19,29 @@ function searchPages(query) {
     return results;
 }
 
+let searchAllExpanded = false;
+let lastSearchResults = [];
+
 function handleSearch() {
     const input = document.getElementById('searchInput');
     const resultsContainer = document.getElementById('searchResults');
     const query = input.value;
 
+    searchAllExpanded = false;
+
     if (!query.trim()) {
         resultsContainer.classList.remove('visible');
         resultsContainer.innerHTML = '';
+        lastSearchResults = [];
         return;
     }
 
     const results = searchPages(query);
+    lastSearchResults = results;
+    renderSearchResults(resultsContainer, results);
+}
+
+function renderSearchResults(resultsContainer, results, expanded) {
     resultsContainer.innerHTML = '';
 
     if (results.length === 0) {
@@ -39,28 +50,28 @@ function handleSearch() {
         return;
     }
 
-    const toShow = results.slice(0, 5);
+    const toShow = expanded ? results : results.slice(0, 5);
     toShow.forEach(r => {
         const item = document.createElement('div');
         item.className = 'search-result-item';
         item.innerHTML = `<div class="search-result-category">${r.category}</div><div class="search-result-title">${r.title}</div>`;
         item.addEventListener('click', () => {
             updatePage(r.id);
-            input.value = '';
+            document.getElementById('searchInput').value = '';
             resultsContainer.classList.remove('visible');
             resultsContainer.innerHTML = '';
         });
         resultsContainer.appendChild(item);
     });
 
-    if (results.length > 5) {
+    if (!expanded && results.length > 5) {
         const more = document.createElement('div');
         more.className = 'search-more';
         more.textContent = `Show More — ${results.length - 5} Result${results.length - 5 > 1 ? 's' : ''}`;
-        more.addEventListener('click', () => {
-            input.value = '';
-            resultsContainer.classList.remove('visible');
-            resultsContainer.innerHTML = '';
+        more.addEventListener('click', (e) => {
+            e.stopPropagation();
+            searchAllExpanded = true;
+            renderSearchResults(resultsContainer, lastSearchResults, true);
         });
         resultsContainer.appendChild(more);
     }
