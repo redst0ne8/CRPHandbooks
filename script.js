@@ -132,10 +132,12 @@ function clearSessionToken() {
 function getVisiblePages() {
     if (!isAuthenticated) return ['welcome'];
     if (userRole === 'highrank') {
-        return ['welcome', 'staff-welcome', 'hr-welcome', 'data-management', 'staff-guide-1', 'high-rank', 'duties', 'expectations', 'resources'];
+        const pages = ['welcome', 'staff-welcome', 'hr-welcome', 'staff-guide-1', 'high-rank', 'duties', 'expectations', 'resources'];
+        if (canEdit()) pages.splice(3, 0, 'data-management');
+        return pages;
     }
     if (userRole === 'staff') {
-        return ['welcome', 'staff-welcome', 'hr-welcome', 'data-management', 'staff-guide-1'];
+        return ['welcome', 'staff-welcome', 'staff-guide-1'];
     }
     return ['welcome'];
 }
@@ -460,7 +462,7 @@ function updateAuthUI() {
     const userAvatar = document.getElementById('userAvatar');
     const body = document.body;
 
-    body.classList.remove('role-staff', 'role-highrank');
+    body.classList.remove('role-staff', 'role-highrank', 'role-editor');
 
     if (isAuthenticated && currentUser) {
         loginBtn.style.display = 'none';
@@ -472,6 +474,10 @@ function updateAuthUI() {
             body.classList.add('role-staff');
         } else if (userRole === 'highrank') {
             body.classList.add('role-highrank');
+        }
+
+        if (canEdit()) {
+            body.classList.add('role-editor');
         }
     } else {
         loginBtn.style.display = 'inline-block';

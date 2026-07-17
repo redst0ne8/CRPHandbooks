@@ -487,6 +487,14 @@ body {
     display: block;
 }
 
+.nav-item.editor-required {
+    display: none;
+}
+
+.authenticated.role-editor .nav-item.editor-required {
+    display: flex;
+}
+
 .nav-section {
     margin-bottom: 0.5rem;
 }
