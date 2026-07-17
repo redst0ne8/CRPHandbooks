@@ -61,7 +61,11 @@ async function checkAuth() {
     }
 
     if (isAuthenticated && currentUser) {
-        showWelcomeOverlay();
+        if (sessionStorage.getItem('crp-welcomed')) {
+            updateAuthUI();
+        } else {
+            showWelcomeOverlay();
+        }
     } else {
         updateAuthUI();
     }
@@ -76,9 +80,16 @@ function showWelcomeOverlay() {
     username.textContent = currentUser.username;
     overlay.classList.add('show');
 
+    sessionStorage.setItem('crp-welcomed', '1');
+
     setTimeout(async () => {
         await checkRoles();
         overlay.classList.remove('show');
+        overlay.classList.add('hiding');
+        overlay.addEventListener('animationend', function handler() {
+            overlay.classList.remove('hiding');
+            overlay.removeEventListener('animationend', handler);
+        });
         updateAuthUI();
     }, 2000);
 }
@@ -321,6 +332,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('logoutBtn').addEventListener('click', function(e) {
         e.preventDefault();
         clearSessionToken();
+        sessionStorage.removeItem('crp-welcomed');
         isAuthenticated = false;
         currentUser = null;
         userRole = null;
