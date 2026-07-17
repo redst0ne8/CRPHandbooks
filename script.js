@@ -26,7 +26,7 @@ const collapsibles = {
 const defaultPages = {
     'welcome': {
         title: 'Welcome',
-        content: '<p>As a high-ranking team member, your duties are more elevated. You\'re given more responsibilities for you to handle & monitor. It\'s crucial you do your weekly duties to ensure the community & staff team runs effortlessly.</p>',
+        content: '<p>Welcome to the Colorado Roleplay Staff &amp; High Rank Guidebooks. In order to access the guides, you are <strong>required</strong> to authenticate using your <em>staff Discord Account</em>. Failure to do so will result in you not being able to access the guides.</p><blockquote>Log in <strong>should</strong> persist.</blockquote><p>The log in button is in the top right.</p><h2>I\'m already authenticated?</h2><p>You should see the rest of your guides! Look in the left tab bar, or at the bottom page buttons.</p>',
         lastUpdated: 'July 17th, 2026',
         category: 'Introduction',
         categoryFirstPage: 'welcome',
