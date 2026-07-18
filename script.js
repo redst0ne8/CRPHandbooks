@@ -444,16 +444,6 @@ async function loadContent() {
                     delete defaultPages[pageId];
                 }
             }
-            if (data.pages) {
-                for (const [id, page] of Object.entries(data.pages)) {
-                    if (pages[id]) {
-                        pages[id].content = page.content;
-                        if (page.lastUpdated) pages[id].lastUpdated = page.lastUpdated;
-                    }
-                    if (page.title && pages[id]) pages[id].title = page.title;
-                    if (page.icon && pages[id]) pages[id].icon = page.icon;
-                }
-            }
             if (data.collapsibles) {
                 for (const [id, c] of Object.entries(data.collapsibles)) {
                     if (collapsibles[id]) {
@@ -474,6 +464,16 @@ async function loadContent() {
                         categoryFirstPage: cp.categoryFirstPage || 'welcome',
                         icon: cp.icon
                     };
+                }
+            }
+            if (data.pages) {
+                for (const [id, page] of Object.entries(data.pages)) {
+                    if (pages[id]) {
+                        if (page.content !== undefined) pages[id].content = page.content;
+                        if (page.lastUpdated) pages[id].lastUpdated = page.lastUpdated;
+                        if (page.title) pages[id].title = page.title;
+                        if (page.icon) pages[id].icon = page.icon;
+                    }
                 }
             }
             if (data.pageOrder) {
