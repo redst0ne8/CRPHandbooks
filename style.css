@@ -1159,6 +1159,34 @@ body.role-editor .sidebar-bottom.editor-only {
     display: flex;
 }
 
+.nav-item[draggable="true"] {
+    cursor: grab;
+}
+
+.nav-item[draggable="true"]:active {
+    cursor: grabbing;
+}
+
+.nav-item.dragging {
+    opacity: 0.3;
+    border: 1px dashed rgba(77, 166, 255, 0.5);
+    border-radius: 6px;
+    background: rgba(77, 166, 255, 0.05);
+}
+
+.nav-item.drag-over {
+    border-top: 2px solid #4da6ff;
+}
+
+.drag-placeholder {
+    height: 36px;
+    border: 1px dashed rgba(77, 166, 255, 0.4);
+    border-radius: 6px;
+    background: rgba(77, 166, 255, 0.05);
+    margin: 0.15rem 0;
+    pointer-events: none;
+}
+
 .page-settings-modal-overlay {
     display: none;
     position: fixed;

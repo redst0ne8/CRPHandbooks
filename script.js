@@ -185,13 +185,19 @@ function getVisiblePages() {
         }
     }
 
+    const domOrder = [];
+    document.querySelectorAll('.nav-item').forEach(item => {
+        if (item.dataset.page) domOrder.push(item.dataset.page);
+    });
+
     visible.sort((a, b) => {
         const posA = pageOrder[a] != null ? pageOrder[a] : 9999;
         const posB = pageOrder[b] != null ? pageOrder[b] : 9999;
         if (posA !== posB) return posA - posB;
-        const idxA = allPageIds.indexOf(a);
-        const idxB = allPageIds.indexOf(b);
-        return idxA - idxB;
+        const idxA = domOrder.indexOf(a);
+        const idxB = domOrder.indexOf(b);
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        return allPageIds.indexOf(a) - allPageIds.indexOf(b);
     });
 
     return visible;
@@ -291,6 +297,15 @@ function updatePage(pageId) {
                 if (textNode) textNode.textContent = '\n                        ' + pageData.title + '\n                    ';
             }
         }
+    });
+
+    document.querySelectorAll('.nav-section').forEach(section => {
+        const sectionItems = [];
+        visiblePages.forEach(id => {
+            const nav = section.querySelector(`.nav-item[data-page="${id}"]`);
+            if (nav) sectionItems.push(nav);
+        });
+        sectionItems.forEach(nav => section.appendChild(nav));
     });
 
     const currentIndex = visiblePages.indexOf(pageId);
@@ -923,6 +938,7 @@ function renderCustomSidebarItems() {
         a.classList.add(visClass);
 
         a.innerHTML = `<span class="nav-icon"><img src="${page.icon}" alt=""></span>${page.title}`;
+        a.setAttribute('draggable', 'true');
         a.addEventListener('click', function(e) {
             e.preventDefault();
             updatePage(this.dataset.page);
@@ -1035,10 +1051,6 @@ function openPageSettingsModal() {
     document.getElementById('pageSettingsTitle').value = page.title;
     const iconVal = page.icon ? page.icon.replace('assets/icons/', '') : 'wave.svg';
     document.getElementById('pageSettingsIcon').value = iconVal;
-    const visiblePages = getVisiblePages();
-    const currentPos = visiblePages.indexOf(currentPageId) + 1;
-    document.getElementById('pageSettingsPosition').value = currentPos;
-    document.getElementById('pageSettingsPosition').max = visiblePages.length;
     document.getElementById('pageSettingsModal').classList.add('visible');
 }
 
@@ -1050,7 +1062,6 @@ async function savePageSettings() {
     const title = document.getElementById('pageSettingsTitle').value.trim();
     const iconInput = document.getElementById('pageSettingsIcon').value.trim() || 'wave.svg';
     const icon = resolveIconPath(iconInput);
-    const position = parseInt(document.getElementById('pageSettingsPosition').value, 10);
     if (!title) return;
 
     const isCustom = currentPageId.startsWith('custom-');
@@ -1062,15 +1073,6 @@ async function savePageSettings() {
     if (isCustom && customPages[currentPageId]) {
         customPages[currentPageId].title = title;
         customPages[currentPageId].icon = icon;
-    }
-
-    if (position && position >= 1) {
-        const visiblePages = getVisiblePages();
-        const oldIndex = visiblePages.indexOf(currentPageId);
-        if (oldIndex !== -1) visiblePages.splice(oldIndex, 1);
-        const newIndex = Math.min(position - 1, visiblePages.length);
-        visiblePages.splice(newIndex, 0, currentPageId);
-        visiblePages.forEach((id, i) => { pageOrder[id] = i; });
     }
 
     try {
@@ -1096,6 +1098,106 @@ async function savePageSettings() {
     updatePage(currentPageId);
 }
 
+let draggedPageId = null;
+let dragPlaceholder = null;
+
+function initDragAndDrop() {
+    const sidebarNav = document.querySelector('.sidebar-nav');
+
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.setAttribute('draggable', 'true');
+    });
+
+    sidebarNav.addEventListener('dragstart', function(e) {
+        const item = e.target.closest('.nav-item');
+        if (!item) return;
+        draggedPageId = item.dataset.page;
+        item.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', draggedPageId);
+    });
+
+    sidebarNav.addEventListener('dragend', function(e) {
+        const item = e.target.closest('.nav-item');
+        if (item) item.classList.remove('dragging');
+        draggedPageId = null;
+        if (dragPlaceholder && dragPlaceholder.parentElement) {
+            dragPlaceholder.remove();
+        }
+        dragPlaceholder = null;
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('drag-over'));
+    });
+
+    sidebarNav.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('drag-over'));
+        const item = e.target.closest('.nav-item');
+        if (item && item.dataset.page !== draggedPageId) {
+            const draggedEl = document.querySelector(`.nav-item[data-page="${draggedPageId}"]`);
+            if (draggedEl && draggedEl.parentElement === item.parentElement) {
+                item.classList.add('drag-over');
+            }
+        }
+    });
+
+    sidebarNav.addEventListener('dragleave', function(e) {
+        const item = e.target.closest('.nav-item');
+        if (item) item.classList.remove('drag-over');
+    });
+
+    sidebarNav.addEventListener('drop', function(e) {
+        e.preventDefault();
+        const item = e.target.closest('.nav-item');
+        if (!item) return;
+        item.classList.remove('drag-over');
+        const toId = item.dataset.page;
+        if (!draggedPageId || !toId || draggedPageId === toId) return;
+
+        const fromEl = document.querySelector(`.nav-item[data-page="${draggedPageId}"]`);
+        if (!fromEl) return;
+
+        if (fromEl.parentElement !== item.parentElement) return;
+
+        const rect = item.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        if (e.clientY < midY) {
+            item.parentElement.insertBefore(fromEl, item);
+        } else {
+            item.parentElement.insertBefore(fromEl, item.nextSibling);
+        }
+
+        syncPageOrderFromDOM();
+        savePageOrderToServer();
+    });
+}
+
+function syncPageOrderFromDOM() {
+    pageOrder = {};
+    let index = 0;
+    document.querySelectorAll('.nav-item').forEach(item => {
+        const id = item.dataset.page;
+        if (id) {
+            pageOrder[id] = index;
+            index++;
+        }
+    });
+}
+
+async function savePageOrderToServer() {
+    const token = getSessionToken();
+    try {
+        await fetch('/api/content', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({ type: 'pageOrder', pageOrder })
+        });
+    } catch (e) {}
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('newPageBtn').addEventListener('click', openNewPageModal);
     document.getElementById('newPageModalClose').addEventListener('click', closeNewPageModal);
@@ -1115,4 +1217,6 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('pageSettingsModal').addEventListener('click', function(e) {
         if (e.target === this) closePageSettingsModal();
     });
+
+    initDragAndDrop();
 });

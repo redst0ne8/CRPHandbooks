@@ -113,6 +113,17 @@ export default async function handler(req, res) {
 
         const { type, pageId, collapsibleId, content, pageData, title, icon, isCustom, pageOrder } = req.body || {};
 
+        if (type === 'pageOrder') {
+            try {
+                if (pageOrder) {
+                    await redis.set('pageOrder', pageOrder);
+                }
+                return res.status(200).json({ success: true });
+            } catch (e) {
+                return res.status(500).json({ error: 'Failed to save page order' });
+            }
+        }
+
         if (type === 'deletePage') {
             if (!pageId) {
                 return res.status(400).json({ error: 'pageId is required' });
