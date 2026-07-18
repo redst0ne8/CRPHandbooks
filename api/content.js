@@ -262,7 +262,9 @@ export default async function handler(req, res) {
 
             try {
                 const existing = (await redis.get('collapsibles')) || {};
+                const prev = existing[collapsibleId] || {};
                 existing[collapsibleId] = {
+                    ...prev,
                     content: content,
                     updatedBy: session.username,
                     updatedAt: new Date().toISOString()

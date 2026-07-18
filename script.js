@@ -448,6 +448,7 @@ async function loadContent() {
                 for (const [id, c] of Object.entries(data.collapsibles)) {
                     if (collapsibles[id]) {
                         collapsibles[id].content = c.content;
+                        if (c.title) collapsibles[id].title = c.title;
                     } else {
                         collapsibles[id] = { title: c.title || id, content: c.content || '' };
                     }
