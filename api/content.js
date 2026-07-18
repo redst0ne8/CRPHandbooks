@@ -86,10 +86,12 @@ export default async function handler(req, res) {
             const pageData = await redis.get('pages');
             const collapsibleData = await redis.get('collapsibles');
             const customPageData = await redis.get('customPages');
+            const deletedPages = (await redis.get('deletedPages')) || [];
             return res.status(200).json({
                 pages: pageData || {},
                 collapsibles: collapsibleData || {},
-                customPages: customPageData || {}
+                customPages: customPageData || {},
+                deletedPages
             });
         } catch (e) {
             return res.status(200).json({ pages: {}, collapsibles: {} });
@@ -107,7 +109,23 @@ export default async function handler(req, res) {
             return res.status(403).json({ error: 'Not authorized to edit' });
         }
 
-        const { type, pageId, collapsibleId, content, pageData } = req.body || {};
+        const { type, pageId, collapsibleId, content, pageData, title, icon, isCustom } = req.body || {};
+
+        if (type === 'deletePage') {
+            if (!pageId) {
+                return res.status(400).json({ error: 'pageId is required' });
+            }
+            try {
+                const deleted = (await redis.get('deletedPages')) || [];
+                if (!deleted.includes(pageId)) {
+                    deleted.push(pageId);
+                    await redis.set('deletedPages', deleted);
+                }
+                return res.status(200).json({ success: true });
+            } catch (e) {
+                return res.status(500).json({ error: 'Failed to delete page' });
+            }
+        }
 
         if (type === 'deleteCustomPage') {
             if (!pageId) {
@@ -138,6 +156,35 @@ export default async function handler(req, res) {
                 return res.status(200).json({ success: true });
             } catch (e) {
                 return res.status(500).json({ error: 'Failed to save custom page' });
+            }
+        }
+
+        if (type === 'updatePageMeta') {
+            if (!pageId || !title) {
+                return res.status(400).json({ error: 'pageId and title are required' });
+            }
+            try {
+                if (isCustom) {
+                    const existing = (await redis.get('customPages')) || {};
+                    if (existing[pageId]) {
+                        existing[pageId].title = title;
+                        existing[pageId].icon = icon;
+                        await redis.set('customPages', existing);
+                    }
+                } else {
+                    const existing = (await redis.get('pages')) || {};
+                    existing[pageId] = {
+                        ...(existing[pageId] || {}),
+                        title,
+                        icon,
+                        updatedBy: session.username,
+                        updatedAt: new Date().toISOString()
+                    };
+                    await redis.set('pages', existing);
+                }
+                return res.status(200).json({ success: true });
+            } catch (e) {
+                return res.status(500).json({ error: 'Failed to update page settings' });
             }
         }
 

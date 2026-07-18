@@ -106,8 +106,8 @@
                 </div>
             </nav>
             <div class="sidebar-bottom editor-only" id="sidebarBottom">
+                <button class="delete-page-btn" id="deletePageBtn">Delete This Page</button>
                 <button class="new-page-btn" id="newPageBtn">+ New Page</button>
-                <button class="delete-page-btn" id="deletePageBtn" style="display: none;">Delete This Page</button>
             </div>
         </aside>
 
@@ -127,7 +127,10 @@
             <div class="pagination">
                 <div class="pagination-meta">
                     <div class="last-updated">Last Updated: July 17th, 2026</div>
-                    <button class="edit-content-btn" id="editContentBtn" style="display: none;">Edit Content</button>
+                    <div class="pagination-actions">
+                        <button class="edit-content-btn" id="editContentBtn" style="display: none;">Edit Content</button>
+                        <button class="edit-page-btn" id="editPageBtn" style="display: none;">Edit Page</button>
+                    </div>
                 </div>
                 <div class="pagination-buttons">
                     <div class="pagination-back" id="prevPage" style="display: none;">
@@ -177,8 +180,11 @@
                     <input type="text" id="newPageTitle" placeholder="e.g. Training Overview">
                 </div>
                 <div class="new-page-field">
-                    <label for="newPageIcon">Icon (SVG path)</label>
-                    <input type="text" id="newPageIcon" placeholder="e.g. assets/icons/wave.svg" value="assets/icons/wave.svg">
+                    <label for="newPageIcon">Icon (filename only)</label>
+                    <div class="icon-input-group">
+                        <span class="icon-path-prefix">assets/icons/</span>
+                        <input type="text" id="newPageIcon" placeholder="wave.svg" value="wave.svg">
+                    </div>
                 </div>
                 <div class="new-page-field">
                     <label for="newPageCategory">Category</label>
@@ -201,6 +207,32 @@
             <div class="edit-modal-footer">
                 <button class="edit-cancel-btn" id="newPageCancelBtn">Cancel</button>
                 <button class="edit-save-btn" id="newPageSaveBtn">Create Page</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="page-settings-modal-overlay" id="pageSettingsModal">
+        <div class="new-page-modal">
+            <div class="edit-modal-header">
+                <h3>Edit Page Settings</h3>
+                <button class="edit-modal-close" id="pageSettingsModalClose">&times;</button>
+            </div>
+            <div class="edit-modal-body">
+                <div class="new-page-field">
+                    <label for="pageSettingsTitle">Page Title</label>
+                    <input type="text" id="pageSettingsTitle">
+                </div>
+                <div class="new-page-field">
+                    <label for="pageSettingsIcon">Icon (filename only)</label>
+                    <div class="icon-input-group">
+                        <span class="icon-path-prefix">assets/icons/</span>
+                        <input type="text" id="pageSettingsIcon">
+                    </div>
+                </div>
+            </div>
+            <div class="edit-modal-footer">
+                <button class="edit-cancel-btn" id="pageSettingsCancelBtn">Cancel</button>
+                <button class="edit-save-btn" id="pageSettingsSaveBtn">Save Changes</button>
             </div>
         </div>
     </div>

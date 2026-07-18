@@ -727,6 +727,12 @@ body:not(.authenticated) .pagination {
     margin-bottom: 1.5rem;
 }
 
+.pagination-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: baseline;
+}
+
 .last-updated {
     font-size: 0.8rem;
     color: rgba(255, 255, 255, 0.35);
@@ -746,6 +752,22 @@ body:not(.authenticated) .pagination {
 }
 
 .edit-content-btn:hover {
+    color: #4da6ff;
+}
+
+.edit-page-btn {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.35);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.8rem;
+    padding: 0;
+    cursor: pointer;
+    transition: color 0.2s;
+    white-space: nowrap;
+}
+
+.edit-page-btn:hover {
     color: #4da6ff;
 }
 
@@ -1097,6 +1119,40 @@ body.role-editor .sidebar-bottom.editor-only {
 .new-page-field select option {
     background: #1a1a2e;
     color: #ffffff;
+}
+
+.icon-input-group {
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.icon-input-group:focus-within {
+    border-color: #4da6ff;
+}
+
+.icon-path-prefix {
+    padding: 0.55rem 0.6rem;
+    color: rgba(255, 255, 255, 0.35);
+    font-family: 'DM Sans', monospace;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    user-select: none;
+}
+
+.icon-input-group input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    padding: 0.55rem 0.75rem;
+    color: #ffffff;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    outline: none;
 }
 
 .nav-item.custom-page-item {

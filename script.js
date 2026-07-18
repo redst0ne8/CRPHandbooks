@@ -256,8 +256,15 @@ function updatePage(pageId) {
         editBtn.style.display = 'none';
     }
 
+    const editPageBtn = document.getElementById('editPageBtn');
+    if (canEdit()) {
+        editPageBtn.style.display = 'inline-block';
+    } else {
+        editPageBtn.style.display = 'none';
+    }
+
     const deleteBtn = document.getElementById('deletePageBtn');
-    if (canEdit() && currentPageId.startsWith('custom-')) {
+    if (canEdit()) {
         deleteBtn.style.display = 'block';
     } else {
         deleteBtn.style.display = 'none';
@@ -315,12 +322,21 @@ async function loadContent() {
         const res = await fetch('/api/content');
         if (res.ok) {
             const data = await res.json();
+            if (data.deletedPages) {
+                for (const pageId of data.deletedPages) {
+                    delete pages[pageId];
+                    delete defaultPages[pageId];
+                    document.querySelectorAll(`.nav-item[data-page="${pageId}"]`).forEach(el => el.remove());
+                }
+            }
             if (data.pages) {
                 for (const [id, page] of Object.entries(data.pages)) {
                     if (pages[id]) {
                         pages[id].content = page.content;
                         if (page.lastUpdated) pages[id].lastUpdated = page.lastUpdated;
                     }
+                    if (page.title && pages[id]) pages[id].title = page.title;
+                    if (page.icon && pages[id]) pages[id].icon = page.icon;
                 }
             }
             if (data.collapsibles) {
@@ -344,8 +360,31 @@ async function loadContent() {
                 }
                 renderCustomSidebarItems();
             }
+            updateSidebarTitles();
         }
     } catch (e) {}
+}
+
+function resolveIconPath(icon) {
+    if (!icon) return 'assets/icons/wave.svg';
+    if (icon.startsWith('assets/') || icon.startsWith('http')) return icon;
+    return 'assets/icons/' + icon;
+}
+
+function updateSidebarTitles() {
+    for (const [id, page] of Object.entries(pages)) {
+        const navItem = document.querySelector(`.nav-item[data-page="${id}"]`);
+        if (navItem && page.title) {
+            const textNode = navItem.childNodes[navItem.childNodes.length - 1];
+            if (textNode && textNode.nodeType === 3) {
+                textNode.textContent = '\n                        ' + page.title + '\n                    ';
+            }
+            const img = navItem.querySelector('.nav-icon img');
+            if (img && page.icon) {
+                img.src = page.icon;
+            }
+        }
+    }
 }
 
 function htmlToMarkdown(html) {
@@ -830,9 +869,10 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
+        if (e.key === 'escape' || e.key === 'Escape') {
             closeEditModal();
             closeNewPageModal();
+            closePageSettingsModal();
         }
     });
 });
@@ -874,7 +914,7 @@ function renderCustomSidebarItems() {
 
 function openNewPageModal() {
     document.getElementById('newPageTitle').value = '';
-    document.getElementById('newPageIcon').value = 'assets/icons/wave.svg';
+    document.getElementById('newPageIcon').value = 'wave.svg';
     document.getElementById('newPageCategory').value = 'Introduction';
     document.getElementById('newPageVisibility').value = 'auth';
     document.getElementById('newPageModal').classList.add('visible');
@@ -886,7 +926,8 @@ function closeNewPageModal() {
 
 async function createNewPage() {
     const title = document.getElementById('newPageTitle').value.trim();
-    const icon = document.getElementById('newPageIcon').value.trim() || 'assets/icons/wave.svg';
+    const iconInput = document.getElementById('newPageIcon').value.trim() || 'wave.svg';
+    const icon = resolveIconPath(iconInput);
     const category = document.getElementById('newPageCategory').value;
     const visibility = document.getElementById('newPageVisibility').value;
 
@@ -938,10 +979,12 @@ async function createNewPage() {
 }
 
 async function deleteCurrentPage() {
-    if (!currentPageId || !currentPageId.startsWith('custom-')) return;
+    if (!currentPageId) return;
     if (!confirm('Delete this page? This cannot be undone.')) return;
 
     const token = getSessionToken();
+    const isCustom = currentPageId.startsWith('custom-');
+
     try {
         await fetch('/api/content', {
             method: 'POST',
@@ -949,17 +992,71 @@ async function deleteCurrentPage() {
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer ' + token
             },
-            body: JSON.stringify({ type: 'deleteCustomPage', pageId: currentPageId })
+            body: JSON.stringify({
+                type: isCustom ? 'deleteCustomPage' : 'deletePage',
+                pageId: currentPageId
+            })
         });
     } catch (e) {}
 
     delete pages[currentPageId];
-    delete customPages[currentPageId];
+    if (isCustom) delete customPages[currentPageId];
 
     document.querySelectorAll(`.nav-item[data-page="${currentPageId}"]`).forEach(el => el.remove());
 
     const visiblePages = getVisiblePages();
     updatePage(visiblePages[0]);
+}
+
+function openPageSettingsModal() {
+    const page = pages[currentPageId];
+    if (!page) return;
+    document.getElementById('pageSettingsTitle').value = page.title;
+    const iconVal = page.icon ? page.icon.replace('assets/icons/', '') : 'wave.svg';
+    document.getElementById('pageSettingsIcon').value = iconVal;
+    document.getElementById('pageSettingsModal').classList.add('visible');
+}
+
+function closePageSettingsModal() {
+    document.getElementById('pageSettingsModal').classList.remove('visible');
+}
+
+async function savePageSettings() {
+    const title = document.getElementById('pageSettingsTitle').value.trim();
+    const iconInput = document.getElementById('pageSettingsIcon').value.trim() || 'wave.svg';
+    const icon = resolveIconPath(iconInput);
+    if (!title) return;
+
+    const isCustom = currentPageId.startsWith('custom-');
+    const token = getSessionToken();
+
+    pages[currentPageId].title = title;
+    pages[currentPageId].icon = icon;
+
+    if (isCustom && customPages[currentPageId]) {
+        customPages[currentPageId].title = title;
+        customPages[currentPageId].icon = icon;
+    }
+
+    try {
+        await fetch('/api/content', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({
+                type: 'updatePageMeta',
+                pageId: currentPageId,
+                title,
+                icon,
+                isCustom
+            })
+        });
+    } catch (e) {}
+
+    closePageSettingsModal();
+    updatePage(currentPageId);
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -971,5 +1068,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('newPageModal').addEventListener('click', function(e) {
         if (e.target === this) closeNewPageModal();
+    });
+
+    document.getElementById('editPageBtn').addEventListener('click', openPageSettingsModal);
+    document.getElementById('pageSettingsModalClose').addEventListener('click', closePageSettingsModal);
+    document.getElementById('pageSettingsCancelBtn').addEventListener('click', closePageSettingsModal);
+    document.getElementById('pageSettingsSaveBtn').addEventListener('click', savePageSettings);
+
+    document.getElementById('pageSettingsModal').addEventListener('click', function(e) {
+        if (e.target === this) closePageSettingsModal();
     });
 });
