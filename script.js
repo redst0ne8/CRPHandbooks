@@ -153,15 +153,37 @@ function clearSessionToken() {
     localStorage.removeItem('crp-session');
 }
 
+let customPages = {};
+
 function getVisiblePages() {
     if (!isAuthenticated) return ['welcome'];
+    const base = ['welcome', 'staff-welcome', 'hr-welcome', 'staff-guide-1', 'high-rank', 'duties', 'expectations', 'resources'];
     if (userRole === 'highrank') {
-        const pages = ['welcome', 'staff-welcome', 'hr-welcome', 'staff-guide-1', 'high-rank', 'duties', 'expectations', 'resources'];
-        if (canEdit()) pages.splice(3, 0, 'data-management');
-        return pages;
+        if (canEdit()) base.splice(3, 0, 'data-management');
+        for (const [id, p] of Object.entries(customPages)) {
+            if (p.visibility === 'highrank' || p.visibility === 'staff' || p.visibility === 'auth' || (p.visibility === 'editor' && canEdit())) {
+                base.splice(base.indexOf(p.afterPage) + 1, 0, id);
+            }
+        }
+        return base;
     }
     if (userRole === 'staff') {
-        return ['welcome', 'staff-welcome', 'staff-guide-1'];
+        const staffBase = ['welcome', 'staff-welcome', 'staff-guide-1'];
+        for (const [id, p] of Object.entries(customPages)) {
+            if (p.visibility === 'staff' || p.visibility === 'auth') {
+                staffBase.splice(staffBase.indexOf(p.afterPage) + 1, 0, id);
+            }
+        }
+        return staffBase;
+    }
+    if (canEdit()) {
+        const editorBase = ['welcome'];
+        for (const [id, p] of Object.entries(customPages)) {
+            if (p.visibility === 'editor' || p.visibility === 'auth') {
+                editorBase.splice(editorBase.indexOf(p.afterPage) + 1, 0, id);
+            }
+        }
+        return editorBase;
     }
     return ['welcome'];
 }
@@ -234,6 +256,13 @@ function updatePage(pageId) {
         editBtn.style.display = 'none';
     }
 
+    const deleteBtn = document.getElementById('deletePageBtn');
+    if (canEdit() && currentPageId.startsWith('custom-')) {
+        deleteBtn.style.display = 'block';
+    } else {
+        deleteBtn.style.display = 'none';
+    }
+
     navItems.forEach(nav => {
         nav.classList.remove('active');
         if (nav.dataset.page === pageId) {
@@ -300,6 +329,20 @@ async function loadContent() {
                         collapsibles[id].content = c.content;
                     }
                 }
+            }
+            if (data.customPages) {
+                customPages = data.customPages;
+                for (const [id, cp] of Object.entries(customPages)) {
+                    pages[id] = {
+                        title: cp.title,
+                        content: cp.content || '<p>This page has no content yet.</p>',
+                        lastUpdated: cp.lastUpdated || 'July 17th, 2026',
+                        category: cp.category,
+                        categoryFirstPage: cp.categoryFirstPage || 'welcome',
+                        icon: cp.icon
+                    };
+                }
+                renderCustomSidebarItems();
             }
         }
     } catch (e) {}
@@ -787,6 +830,146 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') closeEditModal();
+        if (e.key === 'Escape') {
+            closeEditModal();
+            closeNewPageModal();
+        }
+    });
+});
+
+function renderCustomSidebarItems() {
+    document.querySelectorAll('.nav-item.custom-page-item').forEach(el => el.remove());
+
+    const sections = {
+        'Introduction': document.querySelector('.nav-section:not(.staff-required-section):not(.highrank-required-section)'),
+        'Staff Guides': document.querySelector('.nav-section.staff-required-section'),
+        'High Rank Guides': document.querySelector('.nav-section.highrank-required-section')
+    };
+
+    for (const [id, page] of Object.entries(customPages)) {
+        const section = sections[page.category];
+        if (!section) continue;
+
+        const a = document.createElement('a');
+        a.href = '#' + id;
+        a.className = 'nav-item custom-page-item';
+        a.dataset.page = id;
+
+        let visClass = 'auth-required';
+        if (page.visibility === 'staff') visClass = 'staff-required';
+        else if (page.visibility === 'highrank') visClass = 'highrank-required';
+        else if (page.visibility === 'editor') visClass = 'editor-required';
+        a.classList.add(visClass);
+
+        a.innerHTML = `<span class="nav-icon"><img src="${page.icon}" alt=""></span>${page.title}`;
+        a.addEventListener('click', function(e) {
+            e.preventDefault();
+            updatePage(this.dataset.page);
+        });
+
+        const navSection = section.classList.contains('nav-section') ? section : section;
+        navSection.appendChild(a);
+    }
+}
+
+function openNewPageModal() {
+    document.getElementById('newPageTitle').value = '';
+    document.getElementById('newPageIcon').value = 'assets/icons/wave.svg';
+    document.getElementById('newPageCategory').value = 'Introduction';
+    document.getElementById('newPageVisibility').value = 'auth';
+    document.getElementById('newPageModal').classList.add('visible');
+}
+
+function closeNewPageModal() {
+    document.getElementById('newPageModal').classList.remove('visible');
+}
+
+async function createNewPage() {
+    const title = document.getElementById('newPageTitle').value.trim();
+    const icon = document.getElementById('newPageIcon').value.trim() || 'assets/icons/wave.svg';
+    const category = document.getElementById('newPageCategory').value;
+    const visibility = document.getElementById('newPageVisibility').value;
+
+    if (!title) return;
+
+    const id = 'custom-' + Date.now();
+    const categoryFirstPages = {
+        'Introduction': 'welcome',
+        'Staff Guides': 'staff-guide-1',
+        'High Rank Guides': 'high-rank'
+    };
+
+    const pageData = {
+        title,
+        icon,
+        category,
+        visibility,
+        content: '<p>Edit this page to add content.</p>',
+        lastUpdated: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+        categoryFirstPage: categoryFirstPages[category] || 'welcome',
+        afterPage: categoryFirstPages[category] || 'welcome'
+    };
+
+    customPages[id] = pageData;
+    pages[id] = {
+        title,
+        content: pageData.content,
+        lastUpdated: pageData.lastUpdated,
+        category,
+        categoryFirstPage: pageData.categoryFirstPage,
+        icon
+    };
+
+    const token = getSessionToken();
+    try {
+        await fetch('/api/content', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({ type: 'customPage', pageId: id, pageData })
+        });
+    } catch (e) {}
+
+    renderCustomSidebarItems();
+    closeNewPageModal();
+    updatePage(id);
+}
+
+async function deleteCurrentPage() {
+    if (!currentPageId || !currentPageId.startsWith('custom-')) return;
+    if (!confirm('Delete this page? This cannot be undone.')) return;
+
+    const token = getSessionToken();
+    try {
+        await fetch('/api/content', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({ type: 'deleteCustomPage', pageId: currentPageId })
+        });
+    } catch (e) {}
+
+    delete pages[currentPageId];
+    delete customPages[currentPageId];
+
+    document.querySelectorAll(`.nav-item[data-page="${currentPageId}"]`).forEach(el => el.remove());
+
+    const visiblePages = getVisiblePages();
+    updatePage(visiblePages[0]);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('newPageBtn').addEventListener('click', openNewPageModal);
+    document.getElementById('newPageModalClose').addEventListener('click', closeNewPageModal);
+    document.getElementById('newPageCancelBtn').addEventListener('click', closeNewPageModal);
+    document.getElementById('newPageSaveBtn').addEventListener('click', createNewPage);
+    document.getElementById('deletePageBtn').addEventListener('click', deleteCurrentPage);
+
+    document.getElementById('newPageModal').addEventListener('click', function(e) {
+        if (e.target === this) closeNewPageModal();
     });
 });

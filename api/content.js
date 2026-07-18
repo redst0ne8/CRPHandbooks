@@ -85,9 +85,11 @@ export default async function handler(req, res) {
         try {
             const pageData = await redis.get('pages');
             const collapsibleData = await redis.get('collapsibles');
+            const customPageData = await redis.get('customPages');
             return res.status(200).json({
                 pages: pageData || {},
-                collapsibles: collapsibleData || {}
+                collapsibles: collapsibleData || {},
+                customPages: customPageData || {}
             });
         } catch (e) {
             return res.status(200).json({ pages: {}, collapsibles: {} });
@@ -105,7 +107,39 @@ export default async function handler(req, res) {
             return res.status(403).json({ error: 'Not authorized to edit' });
         }
 
-        const { type, pageId, collapsibleId, content } = req.body || {};
+        const { type, pageId, collapsibleId, content, pageData } = req.body || {};
+
+        if (type === 'deleteCustomPage') {
+            if (!pageId) {
+                return res.status(400).json({ error: 'pageId is required' });
+            }
+            try {
+                const existing = (await redis.get('customPages')) || {};
+                delete existing[pageId];
+                await redis.set('customPages', existing);
+                return res.status(200).json({ success: true });
+            } catch (e) {
+                return res.status(500).json({ error: 'Failed to delete custom page' });
+            }
+        }
+
+        if (type === 'customPage') {
+            if (!pageId || !pageData) {
+                return res.status(400).json({ error: 'pageId and pageData are required' });
+            }
+            try {
+                const existing = (await redis.get('customPages')) || {};
+                existing[pageId] = {
+                    ...pageData,
+                    createdBy: session.username,
+                    createdAt: new Date().toISOString()
+                };
+                await redis.set('customPages', existing);
+                return res.status(200).json({ success: true });
+            } catch (e) {
+                return res.status(500).json({ error: 'Failed to save custom page' });
+            }
+        }
 
         if (type === 'collapsible') {
             if (!collapsibleId || content === undefined) {

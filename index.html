@@ -105,6 +105,10 @@
                     </a>
                 </div>
             </nav>
+            <div class="sidebar-bottom editor-only" id="sidebarBottom">
+                <button class="new-page-btn" id="newPageBtn">+ New Page</button>
+                <button class="delete-page-btn" id="deletePageBtn" style="display: none;">Delete This Page</button>
+            </div>
         </aside>
 
         <main class="content">
@@ -157,6 +161,46 @@
             <div class="edit-modal-footer">
                 <button class="edit-cancel-btn" id="editCancelBtn">Cancel</button>
                 <button class="edit-save-btn" id="editSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="new-page-modal-overlay" id="newPageModal">
+        <div class="new-page-modal">
+            <div class="edit-modal-header">
+                <h3>New Page</h3>
+                <button class="edit-modal-close" id="newPageModalClose">&times;</button>
+            </div>
+            <div class="edit-modal-body">
+                <div class="new-page-field">
+                    <label for="newPageTitle">Page Title</label>
+                    <input type="text" id="newPageTitle" placeholder="e.g. Training Overview">
+                </div>
+                <div class="new-page-field">
+                    <label for="newPageIcon">Icon (SVG path)</label>
+                    <input type="text" id="newPageIcon" placeholder="e.g. assets/icons/wave.svg" value="assets/icons/wave.svg">
+                </div>
+                <div class="new-page-field">
+                    <label for="newPageCategory">Category</label>
+                    <select id="newPageCategory">
+                        <option value="Introduction">Introduction</option>
+                        <option value="Staff Guides">Staff Guides</option>
+                        <option value="High Rank Guides">High Rank Guides</option>
+                    </select>
+                </div>
+                <div class="new-page-field">
+                    <label for="newPageVisibility">Visibility</label>
+                    <select id="newPageVisibility">
+                        <option value="auth">All Authenticated</option>
+                        <option value="staff">Staff+</option>
+                        <option value="highrank">High Rank+</option>
+                        <option value="editor">Editor Only</option>
+                    </select>
+                </div>
+            </div>
+            <div class="edit-modal-footer">
+                <button class="edit-cancel-btn" id="newPageCancelBtn">Cancel</button>
+                <button class="edit-save-btn" id="newPageSaveBtn">Create Page</button>
             </div>
         </div>
     </div>
