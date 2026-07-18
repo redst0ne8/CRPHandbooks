@@ -176,7 +176,7 @@ function isCategoryVisible(cat) {
 }
 
 function isPageVisible(id) {
-    if (id === 'welcome') return isAuthenticated;
+    if (id === 'welcome') return true;
     if (!pages[id]) return false;
 
     const cp = customPages[id];
@@ -267,7 +267,7 @@ function renderSidebar() {
 }
 
 function getVisiblePages() {
-    if (!isAuthenticated) return [];
+    if (!isAuthenticated) return ['welcome'];
 
     const visible = [];
     for (const id of Object.keys(pages)) {
