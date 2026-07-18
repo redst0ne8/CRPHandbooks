@@ -87,11 +87,13 @@ export default async function handler(req, res) {
             const collapsibleData = await redis.get('collapsibles');
             const customPageData = await redis.get('customPages');
             const deletedPages = (await redis.get('deletedPages')) || [];
+            const pageOrderData = (await redis.get('pageOrder')) || {};
             return res.status(200).json({
                 pages: pageData || {},
                 collapsibles: collapsibleData || {},
                 customPages: customPageData || {},
-                deletedPages
+                deletedPages,
+                pageOrder: pageOrderData
             });
         } catch (e) {
             return res.status(200).json({ pages: {}, collapsibles: {} });
@@ -109,7 +111,7 @@ export default async function handler(req, res) {
             return res.status(403).json({ error: 'Not authorized to edit' });
         }
 
-        const { type, pageId, collapsibleId, content, pageData, title, icon, isCustom } = req.body || {};
+        const { type, pageId, collapsibleId, content, pageData, title, icon, isCustom, pageOrder } = req.body || {};
 
         if (type === 'deletePage') {
             if (!pageId) {
@@ -181,6 +183,9 @@ export default async function handler(req, res) {
                         updatedAt: new Date().toISOString()
                     };
                     await redis.set('pages', existing);
+                }
+                if (pageOrder) {
+                    await redis.set('pageOrder', pageOrder);
                 }
                 return res.status(200).json({ success: true });
             } catch (e) {

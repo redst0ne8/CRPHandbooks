@@ -154,38 +154,47 @@ function clearSessionToken() {
 }
 
 let customPages = {};
+let pageOrder = {};
 
 function getVisiblePages() {
     if (!isAuthenticated) return ['welcome'];
-    const base = ['welcome', 'staff-welcome', 'hr-welcome', 'staff-guide-1', 'high-rank', 'duties', 'expectations', 'resources'];
-    if (userRole === 'highrank') {
-        if (canEdit()) base.splice(3, 0, 'data-management');
-        for (const [id, p] of Object.entries(customPages)) {
-            if (p.visibility === 'highrank' || p.visibility === 'staff' || p.visibility === 'auth' || (p.visibility === 'editor' && canEdit())) {
-                base.splice(base.indexOf(p.afterPage) + 1, 0, id);
-            }
+
+    const visible = [];
+    const allPageIds = Object.keys(pages);
+
+    for (const id of allPageIds) {
+        const page = pages[id];
+        if (!page) continue;
+
+        if (id === 'welcome') { visible.push(id); continue; }
+        if (id === 'staff-welcome' && (userRole === 'staff' || userRole === 'highrank')) { visible.push(id); continue; }
+        if (id === 'hr-welcome' && userRole === 'highrank') { visible.push(id); continue; }
+        if (id === 'staff-guide-1' && (userRole === 'staff' || userRole === 'highrank')) { visible.push(id); continue; }
+        if (id === 'high-rank' && userRole === 'highrank') { visible.push(id); continue; }
+        if (id === 'duties' && userRole === 'highrank') { visible.push(id); continue; }
+        if (id === 'expectations' && userRole === 'highrank') { visible.push(id); continue; }
+        if (id === 'resources' && userRole === 'highrank') { visible.push(id); continue; }
+        if (id === 'data-management' && canEdit() && userRole === 'highrank') { visible.push(id); continue; }
+
+        const cp = customPages[id];
+        if (cp) {
+            if (cp.visibility === 'auth' && isAuthenticated) { visible.push(id); continue; }
+            if (cp.visibility === 'staff' && (userRole === 'staff' || userRole === 'highrank')) { visible.push(id); continue; }
+            if (cp.visibility === 'highrank' && userRole === 'highrank') { visible.push(id); continue; }
+            if (cp.visibility === 'editor' && canEdit()) { visible.push(id); continue; }
         }
-        return base;
     }
-    if (userRole === 'staff') {
-        const staffBase = ['welcome', 'staff-welcome', 'staff-guide-1'];
-        for (const [id, p] of Object.entries(customPages)) {
-            if (p.visibility === 'staff' || p.visibility === 'auth') {
-                staffBase.splice(staffBase.indexOf(p.afterPage) + 1, 0, id);
-            }
-        }
-        return staffBase;
-    }
-    if (canEdit()) {
-        const editorBase = ['welcome'];
-        for (const [id, p] of Object.entries(customPages)) {
-            if (p.visibility === 'editor' || p.visibility === 'auth') {
-                editorBase.splice(editorBase.indexOf(p.afterPage) + 1, 0, id);
-            }
-        }
-        return editorBase;
-    }
-    return ['welcome'];
+
+    visible.sort((a, b) => {
+        const posA = pageOrder[a] != null ? pageOrder[a] : 9999;
+        const posB = pageOrder[b] != null ? pageOrder[b] : 9999;
+        if (posA !== posB) return posA - posB;
+        const idxA = allPageIds.indexOf(a);
+        const idxB = allPageIds.indexOf(b);
+        return idxA - idxB;
+    });
+
+    return visible;
 }
 
 function processShortcodes(html) {
@@ -274,6 +283,13 @@ function updatePage(pageId) {
         nav.classList.remove('active');
         if (nav.dataset.page === pageId) {
             nav.classList.add('active');
+            const pageData = pages[pageId];
+            if (pageData) {
+                const img = nav.querySelector('.nav-icon img');
+                if (img && pageData.icon) img.src = pageData.icon;
+                const textNode = Array.from(nav.childNodes).find(n => n.nodeType === 3 && n.textContent.trim());
+                if (textNode) textNode.textContent = '\n                        ' + pageData.title + '\n                    ';
+            }
         }
     });
 
@@ -359,6 +375,9 @@ async function loadContent() {
                     };
                 }
                 renderCustomSidebarItems();
+            }
+            if (data.pageOrder) {
+                pageOrder = data.pageOrder;
             }
             updateSidebarTitles();
         }
@@ -783,6 +802,8 @@ document.addEventListener('DOMContentLoaded', function() {
         profileCard.classList.remove('visible');
         pages = JSON.parse(JSON.stringify(defaultPages));
         Object.assign(collapsibles, JSON.parse(JSON.stringify(defaultCollapsibles)));
+        pageOrder = {};
+        customPages = {};
         updateAuthUI();
     });
 
@@ -1014,6 +1035,10 @@ function openPageSettingsModal() {
     document.getElementById('pageSettingsTitle').value = page.title;
     const iconVal = page.icon ? page.icon.replace('assets/icons/', '') : 'wave.svg';
     document.getElementById('pageSettingsIcon').value = iconVal;
+    const visiblePages = getVisiblePages();
+    const currentPos = visiblePages.indexOf(currentPageId) + 1;
+    document.getElementById('pageSettingsPosition').value = currentPos;
+    document.getElementById('pageSettingsPosition').max = visiblePages.length;
     document.getElementById('pageSettingsModal').classList.add('visible');
 }
 
@@ -1025,6 +1050,7 @@ async function savePageSettings() {
     const title = document.getElementById('pageSettingsTitle').value.trim();
     const iconInput = document.getElementById('pageSettingsIcon').value.trim() || 'wave.svg';
     const icon = resolveIconPath(iconInput);
+    const position = parseInt(document.getElementById('pageSettingsPosition').value, 10);
     if (!title) return;
 
     const isCustom = currentPageId.startsWith('custom-');
@@ -1036,6 +1062,15 @@ async function savePageSettings() {
     if (isCustom && customPages[currentPageId]) {
         customPages[currentPageId].title = title;
         customPages[currentPageId].icon = icon;
+    }
+
+    if (position && position >= 1) {
+        const visiblePages = getVisiblePages();
+        const oldIndex = visiblePages.indexOf(currentPageId);
+        if (oldIndex !== -1) visiblePages.splice(oldIndex, 1);
+        const newIndex = Math.min(position - 1, visiblePages.length);
+        visiblePages.splice(newIndex, 0, currentPageId);
+        visiblePages.forEach((id, i) => { pageOrder[id] = i; });
     }
 
     try {
@@ -1050,12 +1085,14 @@ async function savePageSettings() {
                 pageId: currentPageId,
                 title,
                 icon,
-                isCustom
+                isCustom,
+                pageOrder
             })
         });
     } catch (e) {}
 
     closePageSettingsModal();
+    updateSidebarTitles();
     updatePage(currentPageId);
 }
 
