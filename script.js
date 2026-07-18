@@ -857,7 +857,7 @@ async function createNewPage() {
 
     if (!title) return;
 
-    const id = 'custom-' + Date.now();
+    const id = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     const cats = getActiveCategories();
     const firstPageInCategory = Object.keys(pages).find(pid => pages[pid].category === category) || 'welcome';
 
@@ -903,7 +903,7 @@ async function deleteCurrentPage() {
     if (!confirm('Delete this page? This cannot be undone.')) return;
 
     const token = getSessionToken();
-    const isCustom = currentPageId.startsWith('custom-');
+    const isCustom = !!customPages[currentPageId];
 
     try {
         await fetch('/api/content', {
@@ -946,13 +946,13 @@ async function savePageSettings() {
     const icon = resolveIconPath(iconInput);
     if (!title) return;
 
-    const isCustom = currentPageId.startsWith('custom-');
+    const isCustom = !!customPages[currentPageId];
     const token = getSessionToken();
 
     pages[currentPageId].title = title;
     pages[currentPageId].icon = icon;
 
-    if (isCustom && customPages[currentPageId]) {
+    if (isCustom) {
         customPages[currentPageId].title = title;
         customPages[currentPageId].icon = icon;
     }
