@@ -1016,6 +1016,48 @@ body.role-editor .sidebar-bottom.editor-only {
     border-color: rgba(77, 166, 255, 0.6);
 }
 
+.new-collapsible-btn {
+    width: 100%;
+    padding: 0.6rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.6);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+}
+
+.new-collapsible-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.new-category-btn {
+    width: 100%;
+    padding: 0.6rem;
+    background: rgba(77, 166, 255, 0.1);
+    border: 1px dashed rgba(77, 166, 255, 0.3);
+    border-radius: 6px;
+    color: rgba(77, 166, 255, 0.7);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+}
+
+.new-category-btn:hover {
+    background: rgba(77, 166, 255, 0.18);
+    color: #4da6ff;
+    border-color: rgba(77, 166, 255, 0.5);
+}
+
 .delete-page-btn {
     width: 100%;
     padding: 0.6rem;
@@ -1185,6 +1227,25 @@ body.role-editor .sidebar-bottom.editor-only {
     background: rgba(77, 166, 255, 0.05);
     margin: 0.15rem 0;
     pointer-events: none;
+}
+
+.nav-section-title[draggable="true"] {
+    cursor: grab;
+    user-select: none;
+}
+
+.nav-section-title[draggable="true"]:active {
+    cursor: grabbing;
+}
+
+.nav-section.drag-over-section {
+    border: 1px dashed rgba(77, 166, 255, 0.4);
+    border-radius: 8px;
+    background: rgba(77, 166, 255, 0.03);
+}
+
+.nav-section.dragging-section > .nav-section-title {
+    opacity: 0.3;
 }
 
 .page-settings-modal-overlay {

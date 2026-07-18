@@ -88,12 +88,16 @@ export default async function handler(req, res) {
             const customPageData = await redis.get('customPages');
             const deletedPages = (await redis.get('deletedPages')) || [];
             const pageOrderData = (await redis.get('pageOrder')) || {};
+            const categoriesData = (await redis.get('categories')) || [];
+            const categoryOrderData = (await redis.get('categoryOrder')) || {};
             return res.status(200).json({
                 pages: pageData || {},
                 collapsibles: collapsibleData || {},
                 customPages: customPageData || {},
                 deletedPages,
-                pageOrder: pageOrderData
+                pageOrder: pageOrderData,
+                categories: categoriesData,
+                categoryOrder: categoryOrderData
             });
         } catch (e) {
             return res.status(200).json({ pages: {}, collapsibles: {} });
@@ -111,7 +115,7 @@ export default async function handler(req, res) {
             return res.status(403).json({ error: 'Not authorized to edit' });
         }
 
-        const { type, pageId, collapsibleId, content, pageData, title, icon, isCustom, pageOrder } = req.body || {};
+        const { type, pageId, collapsibleId, content, pageData, title, icon, isCustom, pageOrder, categoryOrder, category } = req.body || {};
 
         if (type === 'pageOrder') {
             try {
@@ -121,6 +125,53 @@ export default async function handler(req, res) {
                 return res.status(200).json({ success: true });
             } catch (e) {
                 return res.status(500).json({ error: 'Failed to save page order' });
+            }
+        }
+
+        if (type === 'categoryOrder') {
+            try {
+                if (categoryOrder) {
+                    await redis.set('categoryOrder', categoryOrder);
+                }
+                return res.status(200).json({ success: true });
+            } catch (e) {
+                return res.status(500).json({ error: 'Failed to save category order' });
+            }
+        }
+
+        if (type === 'createCategory') {
+            if (!category || !category.name) {
+                return res.status(400).json({ error: 'category with name is required' });
+            }
+            try {
+                const existing = (await redis.get('categories')) || [];
+                if (!existing.some(c => c.name === category.name)) {
+                    existing.push(category);
+                    await redis.set('categories', existing);
+                }
+                return res.status(200).json({ success: true });
+            } catch (e) {
+                return res.status(500).json({ error: 'Failed to create category' });
+            }
+        }
+
+        if (type === 'createCollapsible') {
+            const { collapsibleId, title } = req.body || {};
+            if (!collapsibleId || !title) {
+                return res.status(400).json({ error: 'collapsibleId and title are required' });
+            }
+            try {
+                const existing = (await redis.get('collapsibles')) || {};
+                existing[collapsibleId] = {
+                    title,
+                    content: '<p>Edit this section to add content.</p>',
+                    createdBy: session.username,
+                    createdAt: new Date().toISOString()
+                };
+                await redis.set('collapsibles', existing);
+                return res.status(200).json({ success: true });
+            } catch (e) {
+                return res.status(500).json({ error: 'Failed to create collapsible' });
             }
         }
 

@@ -124,6 +124,16 @@ const defaultPages = {
 
 let pages = JSON.parse(JSON.stringify(defaultPages));
 const defaultCollapsibles = JSON.parse(JSON.stringify(collapsibles));
+let customPages = {};
+let pageOrder = {};
+let categoryOrder = {};
+let categories = [];
+
+const defaultCategories = [
+    { name: 'Introduction', visibility: 'auth' },
+    { name: 'Staff Guides', visibility: 'staff' },
+    { name: 'High Rank Guides', visibility: 'highrank' }
+];
 
 function canEdit() {
     if (!currentUser) return false;
@@ -153,51 +163,123 @@ function clearSessionToken() {
     localStorage.removeItem('crp-session');
 }
 
-let customPages = {};
-let pageOrder = {};
+function isCategoryVisible(cat) {
+    if (!isAuthenticated) return cat.visibility === 'auth';
+    if (canEdit()) return true;
+    switch (cat.visibility) {
+        case 'auth': return true;
+        case 'staff': return userRole === 'staff' || userRole === 'highrank';
+        case 'highrank': return userRole === 'highrank';
+        case 'editor': return canEdit();
+        default: return false;
+    }
+}
 
-function getVisiblePages() {
-    if (!isAuthenticated) return ['welcome'];
+function isPageVisible(id) {
+    if (id === 'welcome') return isAuthenticated;
+    if (!pages[id]) return false;
 
-    const visible = [];
-    const allPageIds = Object.keys(pages);
-
-    for (const id of allPageIds) {
-        const page = pages[id];
-        if (!page) continue;
-
-        if (id === 'welcome') { visible.push(id); continue; }
-        if (id === 'staff-welcome' && (userRole === 'staff' || userRole === 'highrank')) { visible.push(id); continue; }
-        if (id === 'hr-welcome' && userRole === 'highrank') { visible.push(id); continue; }
-        if (id === 'staff-guide-1' && (userRole === 'staff' || userRole === 'highrank')) { visible.push(id); continue; }
-        if (id === 'high-rank' && userRole === 'highrank') { visible.push(id); continue; }
-        if (id === 'duties' && userRole === 'highrank') { visible.push(id); continue; }
-        if (id === 'expectations' && userRole === 'highrank') { visible.push(id); continue; }
-        if (id === 'resources' && userRole === 'highrank') { visible.push(id); continue; }
-        if (id === 'data-management' && canEdit() && userRole === 'highrank') { visible.push(id); continue; }
-
-        const cp = customPages[id];
-        if (cp) {
-            if (cp.visibility === 'auth' && isAuthenticated) { visible.push(id); continue; }
-            if (cp.visibility === 'staff' && (userRole === 'staff' || userRole === 'highrank')) { visible.push(id); continue; }
-            if (cp.visibility === 'highrank' && userRole === 'highrank') { visible.push(id); continue; }
-            if (cp.visibility === 'editor' && canEdit()) { visible.push(id); continue; }
+    const cp = customPages[id];
+    if (cp) {
+        switch (cp.visibility) {
+            case 'auth': return isAuthenticated;
+            case 'staff': return userRole === 'staff' || userRole === 'highrank';
+            case 'highrank': return userRole === 'highrank';
+            case 'editor': return canEdit();
+            default: return false;
         }
     }
 
-    const domOrder = [];
-    document.querySelectorAll('.nav-item').forEach(item => {
-        if (item.dataset.page) domOrder.push(item.dataset.page);
+    switch (id) {
+        case 'staff-welcome': return userRole === 'staff' || userRole === 'highrank';
+        case 'hr-welcome': return userRole === 'highrank';
+        case 'staff-guide-1': return userRole === 'staff' || userRole === 'highrank';
+        case 'high-rank': return userRole === 'highrank';
+        case 'duties': return userRole === 'highrank';
+        case 'expectations': return userRole === 'highrank';
+        case 'resources': return userRole === 'highrank';
+        case 'data-management': return canEdit() && userRole === 'highrank';
+        default: return isAuthenticated;
+    }
+}
+
+function getActiveCategories() {
+    if (categories.length > 0) return categories;
+    return defaultCategories;
+}
+
+function renderSidebar() {
+    const sidebarNav = document.getElementById('sidebarNav');
+    const activeCats = getActiveCategories();
+    const catOrder = categoryOrder;
+
+    const sortedCats = [...activeCats].sort((a, b) => {
+        const posA = catOrder[a.name] != null ? catOrder[a.name] : 9999;
+        const posB = catOrder[b.name] != null ? catOrder[b.name] : 9999;
+        return posA - posB;
     });
+
+    sidebarNav.innerHTML = '';
+
+    for (const cat of sortedCats) {
+        if (!isCategoryVisible(cat)) continue;
+
+        const catPages = [];
+        for (const [id, page] of Object.entries(pages)) {
+            if (page.category !== cat.name) continue;
+            if (!isPageVisible(id)) continue;
+            catPages.push({ id, ...page });
+        }
+
+        catPages.sort((a, b) => {
+            const posA = pageOrder[a.id] != null ? pageOrder[a.id] : 9999;
+            const posB = pageOrder[b.id] != null ? pageOrder[b.id] : 9999;
+            if (posA !== posB) return posA - posB;
+            const allIds = Object.keys(pages);
+            return allIds.indexOf(a.id) - allIds.indexOf(b.id);
+        });
+
+        const section = document.createElement('div');
+        section.className = 'nav-section';
+        section.dataset.category = cat.name;
+
+        const title = document.createElement('div');
+        title.className = 'nav-section-title';
+        title.textContent = cat.name;
+        if (canEdit()) {
+            title.setAttribute('draggable', 'true');
+            title.dataset.category = cat.name;
+        }
+        section.appendChild(title);
+
+        for (const p of catPages) {
+            const a = document.createElement('a');
+            a.href = '#' + p.id;
+            a.className = 'nav-item';
+            a.dataset.page = p.id;
+            a.setAttribute('draggable', 'true');
+            a.innerHTML = '<span class="nav-icon"><img src="' + (p.icon || 'assets/icons/wave.svg') + '" alt=""></span>' + p.title;
+            section.appendChild(a);
+        }
+
+        sidebarNav.appendChild(section);
+    }
+}
+
+function getVisiblePages() {
+    if (!isAuthenticated) return [];
+
+    const visible = [];
+    for (const id of Object.keys(pages)) {
+        if (isPageVisible(id)) visible.push(id);
+    }
 
     visible.sort((a, b) => {
         const posA = pageOrder[a] != null ? pageOrder[a] : 9999;
         const posB = pageOrder[b] != null ? pageOrder[b] : 9999;
         if (posA !== posB) return posA - posB;
-        const idxA = domOrder.indexOf(a);
-        const idxB = domOrder.indexOf(b);
-        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-        return allPageIds.indexOf(a) - allPageIds.indexOf(b);
+        const allIds = Object.keys(pages);
+        return allIds.indexOf(a) - allIds.indexOf(b);
     });
 
     return visible;
@@ -208,15 +290,15 @@ function processShortcodes(html) {
         const c = collapsibles[key];
         if (!c) return match;
         const editBtn = canEdit()
-            ? `<button class="collapsible-edit-btn" data-collapsible="${key}" title="Edit section">&#9998;</button>`
+            ? '<button class="collapsible-edit-btn" data-collapsible="' + key + '" title="Edit section">&#9998;</button>'
             : '';
-        return `<div class="collapsible" data-collapsible="${key}">
-            <div class="collapsible-header">
-                <button class="collapsible-trigger">${c.title}<span class="collapsible-arrow">&#9662;</span></button>
-                ${editBtn}
-            </div>
-            <div class="collapsible-content">${c.content}</div>
-        </div>`;
+        return '<div class="collapsible" data-collapsible="' + key + '">' +
+            '<div class="collapsible-header">' +
+            '<button class="collapsible-trigger">' + c.title + '<span class="collapsible-arrow">&#9662;</span></button>' +
+            editBtn +
+            '</div>' +
+            '<div class="collapsible-content">' + c.content + '</div>' +
+            '</div>';
     });
 }
 
@@ -228,6 +310,7 @@ function updatePage(pageId) {
     if (!visiblePages.includes(pageId)) {
         pageId = visiblePages[0];
     }
+    if (!pageId) return;
 
     currentPageId = pageId;
 
@@ -239,7 +322,6 @@ function updatePage(pageId) {
     const lastUpdatedEl = document.querySelector('.last-updated');
     const categoryLinkEl = document.getElementById('categoryLink');
     const titleIconEl = document.getElementById('titleIcon');
-    const navItems = document.querySelectorAll('.nav-item');
     const editBtn = document.getElementById('editContentBtn');
 
     pageTitle.textContent = activePage.title;
@@ -285,27 +367,11 @@ function updatePage(pageId) {
         deleteBtn.style.display = 'none';
     }
 
-    navItems.forEach(nav => {
+    document.querySelectorAll('.nav-item').forEach(nav => {
         nav.classList.remove('active');
         if (nav.dataset.page === pageId) {
             nav.classList.add('active');
-            const pageData = pages[pageId];
-            if (pageData) {
-                const img = nav.querySelector('.nav-icon img');
-                if (img && pageData.icon) img.src = pageData.icon;
-                const textNode = Array.from(nav.childNodes).find(n => n.nodeType === 3 && n.textContent.trim());
-                if (textNode) textNode.textContent = '\n                        ' + pageData.title + '\n                    ';
-            }
         }
-    });
-
-    document.querySelectorAll('.nav-section').forEach(section => {
-        const sectionItems = [];
-        visiblePages.forEach(id => {
-            const nav = section.querySelector(`.nav-item[data-page="${id}"]`);
-            if (nav) sectionItems.push(nav);
-        });
-        sectionItems.forEach(nav => section.appendChild(nav));
     });
 
     const currentIndex = visiblePages.indexOf(pageId);
@@ -348,6 +414,25 @@ function updatePage(pageId) {
     window.location.hash = pageId;
 }
 
+function resolveIconPath(icon) {
+    if (!icon) return 'assets/icons/wave.svg';
+    if (icon.startsWith('assets/') || icon.startsWith('http')) return icon;
+    return 'assets/icons/' + icon;
+}
+
+function populateCategorySelect() {
+    const select = document.getElementById('newPageCategory');
+    if (!select) return;
+    select.innerHTML = '';
+    const cats = getActiveCategories();
+    for (const cat of cats) {
+        const opt = document.createElement('option');
+        opt.value = cat.name;
+        opt.textContent = cat.name;
+        select.appendChild(opt);
+    }
+}
+
 async function loadContent() {
     try {
         const res = await fetch('/api/content');
@@ -357,7 +442,6 @@ async function loadContent() {
                 for (const pageId of data.deletedPages) {
                     delete pages[pageId];
                     delete defaultPages[pageId];
-                    document.querySelectorAll(`.nav-item[data-page="${pageId}"]`).forEach(el => el.remove());
                 }
             }
             if (data.pages) {
@@ -374,6 +458,8 @@ async function loadContent() {
                 for (const [id, c] of Object.entries(data.collapsibles)) {
                     if (collapsibles[id]) {
                         collapsibles[id].content = c.content;
+                    } else {
+                        collapsibles[id] = { title: c.title || id, content: c.content || '' };
                     }
                 }
             }
@@ -389,36 +475,19 @@ async function loadContent() {
                         icon: cp.icon
                     };
                 }
-                renderCustomSidebarItems();
             }
             if (data.pageOrder) {
                 pageOrder = data.pageOrder;
             }
-            updateSidebarTitles();
+            if (data.categories) {
+                categories = data.categories;
+            }
+            if (data.categoryOrder) {
+                categoryOrder = data.categoryOrder;
+            }
+            renderSidebar();
         }
     } catch (e) {}
-}
-
-function resolveIconPath(icon) {
-    if (!icon) return 'assets/icons/wave.svg';
-    if (icon.startsWith('assets/') || icon.startsWith('http')) return icon;
-    return 'assets/icons/' + icon;
-}
-
-function updateSidebarTitles() {
-    for (const [id, page] of Object.entries(pages)) {
-        const navItem = document.querySelector(`.nav-item[data-page="${id}"]`);
-        if (navItem && page.title) {
-            const textNode = navItem.childNodes[navItem.childNodes.length - 1];
-            if (textNode && textNode.nodeType === 3) {
-                textNode.textContent = '\n                        ' + page.title + '\n                    ';
-            }
-            const img = navItem.querySelector('.nav-icon img');
-            if (img && page.icon) {
-                img.src = page.icon;
-            }
-        }
-    }
 }
 
 function htmlToMarkdown(html) {
@@ -463,7 +532,6 @@ function markdownToHtml(md) {
     const lines = html.split('\n');
     let result = '';
     let inList = false;
-    let inBlockquote = false;
 
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
@@ -627,11 +695,14 @@ function updateAuthUI() {
         userRoles = [];
     }
 
+    renderSidebar();
+    populateCategorySelect();
+
     const hash = window.location.hash.slice(1);
     const visiblePages = getVisiblePages();
     if (hash && pages[hash] && visiblePages.includes(hash)) {
         updatePage(hash);
-    } else {
+    } else if (visiblePages.length > 0) {
         updatePage(visiblePages[0]);
     }
 }
@@ -689,7 +760,7 @@ function renderSearchResults(resultsContainer, results, expanded) {
     toShow.forEach(r => {
         const item = document.createElement('div');
         item.className = 'search-result-item';
-        item.innerHTML = `<div class="search-result-category">${r.category}</div><div class="search-result-title">${r.title}</div>`;
+        item.innerHTML = '<div class="search-result-category">' + r.category + '</div><div class="search-result-title">' + r.title + '</div>';
         item.addEventListener('click', () => {
             updatePage(r.id);
             document.getElementById('searchInput').value = '';
@@ -702,7 +773,7 @@ function renderSearchResults(resultsContainer, results, expanded) {
     if (!expanded && results.length > 5) {
         const more = document.createElement('div');
         more.className = 'search-more';
-        more.textContent = `Show More — ${results.length - 5} Result${results.length - 5 > 1 ? 's' : ''}`;
+        more.textContent = 'Show More — ' + (results.length - 5) + ' Result' + (results.length - 5 > 1 ? 's' : '');
         more.addEventListener('click', (e) => {
             e.stopPropagation();
             renderSearchResults(resultsContainer, results, true);
@@ -734,14 +805,451 @@ function initSearch() {
     });
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    const navItems = document.querySelectorAll('.nav-item');
+let editMode = 'page';
+let editingCollapsibleKey = null;
 
-    navItems.forEach(item => {
-        item.addEventListener('click', function(e) {
-            e.preventDefault();
-            updatePage(this.dataset.page);
+function openEditModal(title, label, markdownContent) {
+    const modal = document.getElementById('editModal');
+    modal.querySelector('h3').textContent = title;
+    modal.querySelector('.edit-field label').textContent = label;
+    document.getElementById('editContentArea').value = markdownContent;
+    modal.classList.add('visible');
+}
+
+function closeEditModal() {
+    document.getElementById('editModal').classList.remove('visible');
+}
+
+function openCollapsibleEditModal(key, c) {
+    editMode = 'collapsible';
+    editingCollapsibleKey = key;
+    openEditModal('Edit ' + c.title, 'Content (Markdown)', htmlToMarkdown(c.content));
+}
+
+function openPageEditModal() {
+    const page = pages[currentPageId];
+    if (!page) return;
+    editMode = 'page';
+    editingCollapsibleKey = null;
+    openEditModal('Edit Content', 'Page Content (Markdown)', htmlToMarkdown(page.content));
+}
+
+function openNewPageModal() {
+    populateCategorySelect();
+    document.getElementById('newPageTitle').value = '';
+    document.getElementById('newPageIcon').value = 'wave.svg';
+    document.getElementById('newPageCategory').value = 'Introduction';
+    document.getElementById('newPageVisibility').value = 'auth';
+    document.getElementById('newPageModal').classList.add('visible');
+}
+
+function closeNewPageModal() {
+    document.getElementById('newPageModal').classList.remove('visible');
+}
+
+async function createNewPage() {
+    const title = document.getElementById('newPageTitle').value.trim();
+    const iconInput = document.getElementById('newPageIcon').value.trim() || 'wave.svg';
+    const icon = resolveIconPath(iconInput);
+    const category = document.getElementById('newPageCategory').value;
+    const visibility = document.getElementById('newPageVisibility').value;
+
+    if (!title) return;
+
+    const id = 'custom-' + Date.now();
+    const cats = getActiveCategories();
+    const firstPageInCategory = Object.keys(pages).find(pid => pages[pid].category === category) || 'welcome';
+
+    const pageData = {
+        title,
+        icon,
+        category,
+        visibility,
+        content: '<p>Edit this page to add content.</p>',
+        lastUpdated: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+        categoryFirstPage: firstPageInCategory
+    };
+
+    customPages[id] = pageData;
+    pages[id] = {
+        title,
+        content: pageData.content,
+        lastUpdated: pageData.lastUpdated,
+        category,
+        categoryFirstPage: firstPageInCategory,
+        icon
+    };
+
+    const token = getSessionToken();
+    try {
+        await fetch('/api/content', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({ type: 'customPage', pageId: id, pageData })
         });
+    } catch (e) {}
+
+    renderSidebar();
+    closeNewPageModal();
+    updatePage(id);
+}
+
+async function deleteCurrentPage() {
+    if (!currentPageId) return;
+    if (!confirm('Delete this page? This cannot be undone.')) return;
+
+    const token = getSessionToken();
+    const isCustom = currentPageId.startsWith('custom-');
+
+    try {
+        await fetch('/api/content', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({
+                type: isCustom ? 'deleteCustomPage' : 'deletePage',
+                pageId: currentPageId
+            })
+        });
+    } catch (e) {}
+
+    delete pages[currentPageId];
+    if (isCustom) delete customPages[currentPageId];
+
+    renderSidebar();
+    const visiblePages = getVisiblePages();
+    updatePage(visiblePages[0]);
+}
+
+function openPageSettingsModal() {
+    const page = pages[currentPageId];
+    if (!page) return;
+    document.getElementById('pageSettingsTitle').value = page.title;
+    const iconVal = page.icon ? page.icon.replace('assets/icons/', '') : 'wave.svg';
+    document.getElementById('pageSettingsIcon').value = iconVal;
+    document.getElementById('pageSettingsModal').classList.add('visible');
+}
+
+function closePageSettingsModal() {
+    document.getElementById('pageSettingsModal').classList.remove('visible');
+}
+
+async function savePageSettings() {
+    const title = document.getElementById('pageSettingsTitle').value.trim();
+    const iconInput = document.getElementById('pageSettingsIcon').value.trim() || 'wave.svg';
+    const icon = resolveIconPath(iconInput);
+    if (!title) return;
+
+    const isCustom = currentPageId.startsWith('custom-');
+    const token = getSessionToken();
+
+    pages[currentPageId].title = title;
+    pages[currentPageId].icon = icon;
+
+    if (isCustom && customPages[currentPageId]) {
+        customPages[currentPageId].title = title;
+        customPages[currentPageId].icon = icon;
+    }
+
+    try {
+        await fetch('/api/content', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({
+                type: 'updatePageMeta',
+                pageId: currentPageId,
+                title,
+                icon,
+                isCustom,
+                pageOrder
+            })
+        });
+    } catch (e) {}
+
+    closePageSettingsModal();
+    renderSidebar();
+    updatePage(currentPageId);
+}
+
+function openNewCollapsibleModal() {
+    document.getElementById('newCollapsibleId').value = '';
+    document.getElementById('newCollapsibleTitle').value = '';
+    document.getElementById('newCollapsibleModal').classList.add('visible');
+}
+
+function closeNewCollapsibleModal() {
+    document.getElementById('newCollapsibleModal').classList.remove('visible');
+}
+
+async function createNewCollapsible() {
+    const key = document.getElementById('newCollapsibleId').value.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_');
+    const title = document.getElementById('newCollapsibleTitle').value.trim();
+    if (!key || !title) return;
+
+    if (collapsibles[key]) {
+        alert('A collapsible with this ID already exists.');
+        return;
+    }
+
+    const newCollapsible = { title, content: '<p>Edit this section to add content.</p>' };
+    collapsibles[key] = newCollapsible;
+
+    const token = getSessionToken();
+    try {
+        await fetch('/api/content', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({ type: 'createCollapsible', collapsibleId: key, title })
+        });
+    } catch (e) {}
+
+    closeNewCollapsibleModal();
+    updatePage(currentPageId);
+    alert('Collapsible created! Use [' + key + '] in any page content to embed it.');
+}
+
+function openNewCategoryModal() {
+    document.getElementById('newCategoryName').value = '';
+    document.getElementById('newCategoryVisibility').value = 'auth';
+    document.getElementById('newCategoryModal').classList.add('visible');
+}
+
+function closeNewCategoryModal() {
+    document.getElementById('newCategoryModal').classList.remove('visible');
+}
+
+async function createNewCategory() {
+    const name = document.getElementById('newCategoryName').value.trim();
+    const visibility = document.getElementById('newCategoryVisibility').value;
+    if (!name) return;
+
+    const cats = getActiveCategories();
+    if (cats.some(c => c.name === name)) {
+        alert('A category with this name already exists.');
+        return;
+    }
+
+    const newCat = { name, visibility };
+    categories.push(newCat);
+
+    const token = getSessionToken();
+    try {
+        await fetch('/api/content', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({ type: 'createCategory', category: newCat })
+        });
+    } catch (e) {}
+
+    closeNewCategoryModal();
+    renderSidebar();
+    populateCategorySelect();
+}
+
+function syncPageOrderFromDOM() {
+    pageOrder = {};
+    let index = 0;
+    document.querySelectorAll('.nav-item').forEach(item => {
+        const id = item.dataset.page;
+        if (id) {
+            pageOrder[id] = index;
+            index++;
+        }
+    });
+}
+
+function syncCategoryOrderFromDOM() {
+    categoryOrder = {};
+    let index = 0;
+    document.querySelectorAll('.nav-section').forEach(section => {
+        const catName = section.dataset.category;
+        if (catName) {
+            categoryOrder[catName] = index;
+            index++;
+        }
+    });
+}
+
+async function savePageOrderToServer() {
+    const token = getSessionToken();
+    try {
+        await fetch('/api/content', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({ type: 'pageOrder', pageOrder })
+        });
+    } catch (e) {}
+}
+
+async function saveCategoryOrderToServer() {
+    const token = getSessionToken();
+    try {
+        await fetch('/api/content', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({ type: 'categoryOrder', categoryOrder })
+        });
+    } catch (e) {}
+}
+
+let draggedPageId = null;
+let draggedCategoryName = null;
+let dragType = null;
+
+function initDragAndDrop() {
+    const sidebarNav = document.getElementById('sidebarNav');
+
+    sidebarNav.addEventListener('dragstart', function(e) {
+        const pageItem = e.target.closest('.nav-item');
+        const sectionTitle = e.target.closest('.nav-section-title');
+
+        if (sectionTitle && sectionTitle.dataset.category) {
+            draggedCategoryName = sectionTitle.dataset.category;
+            dragType = 'category';
+            sectionTitle.closest('.nav-section').classList.add('dragging-section');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', draggedCategoryName);
+            return;
+        }
+
+        if (pageItem && pageItem.dataset.page) {
+            draggedPageId = pageItem.dataset.page;
+            dragType = 'page';
+            pageItem.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', draggedPageId);
+        }
+    });
+
+    sidebarNav.addEventListener('dragend', function(e) {
+        const pageItem = e.target.closest('.nav-item');
+        const sectionTitle = e.target.closest('.nav-section-title');
+        if (pageItem) pageItem.classList.remove('dragging');
+        if (sectionTitle) {
+            const section = sectionTitle.closest('.nav-section');
+            if (section) section.classList.remove('dragging-section');
+        }
+        document.querySelectorAll('.nav-section').forEach(s => s.classList.remove('drag-over-section'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('drag-over'));
+        draggedPageId = null;
+        draggedCategoryName = null;
+        dragType = null;
+    });
+
+    sidebarNav.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+
+        if (dragType === 'category') {
+            document.querySelectorAll('.nav-section').forEach(s => s.classList.remove('drag-over-section'));
+            const section = e.target.closest('.nav-section');
+            if (section && section.dataset.category !== draggedCategoryName) {
+                section.classList.add('drag-over-section');
+            }
+            return;
+        }
+
+        if (dragType === 'page') {
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('drag-over'));
+            const item = e.target.closest('.nav-item');
+            if (item && item.dataset.page !== draggedPageId) {
+                const draggedEl = document.querySelector('.nav-item[data-page="' + draggedPageId + '"]');
+                if (draggedEl && draggedEl.parentElement === item.parentElement) {
+                    item.classList.add('drag-over');
+                }
+            }
+        }
+    });
+
+    sidebarNav.addEventListener('dragleave', function(e) {
+        const item = e.target.closest('.nav-item');
+        if (item) item.classList.remove('drag-over');
+        const section = e.target.closest('.nav-section');
+        if (section && !section.contains(e.relatedTarget)) {
+            section.classList.remove('drag-over-section');
+        }
+    });
+
+    sidebarNav.addEventListener('drop', function(e) {
+        e.preventDefault();
+
+        if (dragType === 'category') {
+            document.querySelectorAll('.nav-section').forEach(s => s.classList.remove('drag-over-section'));
+            const toSection = e.target.closest('.nav-section');
+            if (!toSection || !draggedCategoryName) return;
+            const toCategory = toSection.dataset.category;
+            if (!toCategory || toCategory === draggedCategoryName) return;
+
+            const fromEl = document.querySelector('.nav-section[data-category="' + draggedCategoryName + '"]');
+            if (!fromEl) return;
+
+            const rect = toSection.getBoundingClientRect();
+            const midY = rect.top + rect.height / 2;
+            if (e.clientY < midY) {
+                toSection.parentElement.insertBefore(fromEl, toSection);
+            } else {
+                toSection.parentElement.insertBefore(fromEl, toSection.nextSibling);
+            }
+
+            syncCategoryOrderFromDOM();
+            saveCategoryOrderToServer();
+            return;
+        }
+
+        if (dragType === 'page') {
+            const item = e.target.closest('.nav-item');
+            if (!item) return;
+            item.classList.remove('drag-over');
+            const toId = item.dataset.page;
+            if (!draggedPageId || !toId || draggedPageId === toId) return;
+
+            const fromEl = document.querySelector('.nav-item[data-page="' + draggedPageId + '"]');
+            if (!fromEl) return;
+            if (fromEl.parentElement !== item.parentElement) return;
+
+            const rect = item.getBoundingClientRect();
+            const midY = rect.top + rect.height / 2;
+            if (e.clientY < midY) {
+                item.parentElement.insertBefore(fromEl, item);
+            } else {
+                item.parentElement.insertBefore(fromEl, item.nextSibling);
+            }
+
+            syncPageOrderFromDOM();
+            savePageOrderToServer();
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const sidebarNav = document.getElementById('sidebarNav');
+
+    sidebarNav.addEventListener('click', function(e) {
+        const navItem = e.target.closest('.nav-item');
+        if (navItem) {
+            e.preventDefault();
+            updatePage(navItem.dataset.page);
+        }
     });
 
     document.getElementById('nextPage').addEventListener('click', function() {
@@ -818,43 +1326,15 @@ document.addEventListener('DOMContentLoaded', function() {
         pages = JSON.parse(JSON.stringify(defaultPages));
         Object.assign(collapsibles, JSON.parse(JSON.stringify(defaultCollapsibles)));
         pageOrder = {};
+        categoryOrder = {};
         customPages = {};
+        categories = [];
         updateAuthUI();
     });
 
     initSearch();
-
     checkAuth();
 });
-
-let editMode = 'page';
-let editingCollapsibleKey = null;
-
-function openEditModal(title, label, markdownContent) {
-    const modal = document.getElementById('editModal');
-    modal.querySelector('h3').textContent = title;
-    modal.querySelector('.edit-field label').textContent = label;
-    document.getElementById('editContentArea').value = markdownContent;
-    modal.classList.add('visible');
-}
-
-function closeEditModal() {
-    document.getElementById('editModal').classList.remove('visible');
-}
-
-function openCollapsibleEditModal(key, c) {
-    editMode = 'collapsible';
-    editingCollapsibleKey = key;
-    openEditModal('Edit ' + c.title, 'Content (Markdown)', htmlToMarkdown(c.content));
-}
-
-function openPageEditModal() {
-    const page = pages[currentPageId];
-    if (!page) return;
-    editMode = 'page';
-    editingCollapsibleKey = null;
-    openEditModal('Edit Content', 'Page Content (Markdown)', htmlToMarkdown(page.content));
-}
 
 document.addEventListener('DOMContentLoaded', function() {
     const editModal = document.getElementById('editModal');
@@ -909,294 +1389,11 @@ document.addEventListener('DOMContentLoaded', function() {
             closeEditModal();
             closeNewPageModal();
             closePageSettingsModal();
+            closeNewCollapsibleModal();
+            closeNewCategoryModal();
         }
     });
 });
-
-function renderCustomSidebarItems() {
-    document.querySelectorAll('.nav-item.custom-page-item').forEach(el => el.remove());
-
-    const sections = {
-        'Introduction': document.querySelector('.nav-section:not(.staff-required-section):not(.highrank-required-section)'),
-        'Staff Guides': document.querySelector('.nav-section.staff-required-section'),
-        'High Rank Guides': document.querySelector('.nav-section.highrank-required-section')
-    };
-
-    for (const [id, page] of Object.entries(customPages)) {
-        const section = sections[page.category];
-        if (!section) continue;
-
-        const a = document.createElement('a');
-        a.href = '#' + id;
-        a.className = 'nav-item custom-page-item';
-        a.dataset.page = id;
-
-        let visClass = 'auth-required';
-        if (page.visibility === 'staff') visClass = 'staff-required';
-        else if (page.visibility === 'highrank') visClass = 'highrank-required';
-        else if (page.visibility === 'editor') visClass = 'editor-required';
-        a.classList.add(visClass);
-
-        a.innerHTML = `<span class="nav-icon"><img src="${page.icon}" alt=""></span>${page.title}`;
-        a.setAttribute('draggable', 'true');
-        a.addEventListener('click', function(e) {
-            e.preventDefault();
-            updatePage(this.dataset.page);
-        });
-
-        const navSection = section.classList.contains('nav-section') ? section : section;
-        navSection.appendChild(a);
-    }
-}
-
-function openNewPageModal() {
-    document.getElementById('newPageTitle').value = '';
-    document.getElementById('newPageIcon').value = 'wave.svg';
-    document.getElementById('newPageCategory').value = 'Introduction';
-    document.getElementById('newPageVisibility').value = 'auth';
-    document.getElementById('newPageModal').classList.add('visible');
-}
-
-function closeNewPageModal() {
-    document.getElementById('newPageModal').classList.remove('visible');
-}
-
-async function createNewPage() {
-    const title = document.getElementById('newPageTitle').value.trim();
-    const iconInput = document.getElementById('newPageIcon').value.trim() || 'wave.svg';
-    const icon = resolveIconPath(iconInput);
-    const category = document.getElementById('newPageCategory').value;
-    const visibility = document.getElementById('newPageVisibility').value;
-
-    if (!title) return;
-
-    const id = 'custom-' + Date.now();
-    const categoryFirstPages = {
-        'Introduction': 'welcome',
-        'Staff Guides': 'staff-guide-1',
-        'High Rank Guides': 'high-rank'
-    };
-
-    const pageData = {
-        title,
-        icon,
-        category,
-        visibility,
-        content: '<p>Edit this page to add content.</p>',
-        lastUpdated: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
-        categoryFirstPage: categoryFirstPages[category] || 'welcome',
-        afterPage: categoryFirstPages[category] || 'welcome'
-    };
-
-    customPages[id] = pageData;
-    pages[id] = {
-        title,
-        content: pageData.content,
-        lastUpdated: pageData.lastUpdated,
-        category,
-        categoryFirstPage: pageData.categoryFirstPage,
-        icon
-    };
-
-    const token = getSessionToken();
-    try {
-        await fetch('/api/content', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + token
-            },
-            body: JSON.stringify({ type: 'customPage', pageId: id, pageData })
-        });
-    } catch (e) {}
-
-    renderCustomSidebarItems();
-    closeNewPageModal();
-    updatePage(id);
-}
-
-async function deleteCurrentPage() {
-    if (!currentPageId) return;
-    if (!confirm('Delete this page? This cannot be undone.')) return;
-
-    const token = getSessionToken();
-    const isCustom = currentPageId.startsWith('custom-');
-
-    try {
-        await fetch('/api/content', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + token
-            },
-            body: JSON.stringify({
-                type: isCustom ? 'deleteCustomPage' : 'deletePage',
-                pageId: currentPageId
-            })
-        });
-    } catch (e) {}
-
-    delete pages[currentPageId];
-    if (isCustom) delete customPages[currentPageId];
-
-    document.querySelectorAll(`.nav-item[data-page="${currentPageId}"]`).forEach(el => el.remove());
-
-    const visiblePages = getVisiblePages();
-    updatePage(visiblePages[0]);
-}
-
-function openPageSettingsModal() {
-    const page = pages[currentPageId];
-    if (!page) return;
-    document.getElementById('pageSettingsTitle').value = page.title;
-    const iconVal = page.icon ? page.icon.replace('assets/icons/', '') : 'wave.svg';
-    document.getElementById('pageSettingsIcon').value = iconVal;
-    document.getElementById('pageSettingsModal').classList.add('visible');
-}
-
-function closePageSettingsModal() {
-    document.getElementById('pageSettingsModal').classList.remove('visible');
-}
-
-async function savePageSettings() {
-    const title = document.getElementById('pageSettingsTitle').value.trim();
-    const iconInput = document.getElementById('pageSettingsIcon').value.trim() || 'wave.svg';
-    const icon = resolveIconPath(iconInput);
-    if (!title) return;
-
-    const isCustom = currentPageId.startsWith('custom-');
-    const token = getSessionToken();
-
-    pages[currentPageId].title = title;
-    pages[currentPageId].icon = icon;
-
-    if (isCustom && customPages[currentPageId]) {
-        customPages[currentPageId].title = title;
-        customPages[currentPageId].icon = icon;
-    }
-
-    try {
-        await fetch('/api/content', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + token
-            },
-            body: JSON.stringify({
-                type: 'updatePageMeta',
-                pageId: currentPageId,
-                title,
-                icon,
-                isCustom,
-                pageOrder
-            })
-        });
-    } catch (e) {}
-
-    closePageSettingsModal();
-    updateSidebarTitles();
-    updatePage(currentPageId);
-}
-
-let draggedPageId = null;
-let dragPlaceholder = null;
-
-function initDragAndDrop() {
-    const sidebarNav = document.querySelector('.sidebar-nav');
-
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.setAttribute('draggable', 'true');
-    });
-
-    sidebarNav.addEventListener('dragstart', function(e) {
-        const item = e.target.closest('.nav-item');
-        if (!item) return;
-        draggedPageId = item.dataset.page;
-        item.classList.add('dragging');
-        e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', draggedPageId);
-    });
-
-    sidebarNav.addEventListener('dragend', function(e) {
-        const item = e.target.closest('.nav-item');
-        if (item) item.classList.remove('dragging');
-        draggedPageId = null;
-        if (dragPlaceholder && dragPlaceholder.parentElement) {
-            dragPlaceholder.remove();
-        }
-        dragPlaceholder = null;
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('drag-over'));
-    });
-
-    sidebarNav.addEventListener('dragover', function(e) {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('drag-over'));
-        const item = e.target.closest('.nav-item');
-        if (item && item.dataset.page !== draggedPageId) {
-            const draggedEl = document.querySelector(`.nav-item[data-page="${draggedPageId}"]`);
-            if (draggedEl && draggedEl.parentElement === item.parentElement) {
-                item.classList.add('drag-over');
-            }
-        }
-    });
-
-    sidebarNav.addEventListener('dragleave', function(e) {
-        const item = e.target.closest('.nav-item');
-        if (item) item.classList.remove('drag-over');
-    });
-
-    sidebarNav.addEventListener('drop', function(e) {
-        e.preventDefault();
-        const item = e.target.closest('.nav-item');
-        if (!item) return;
-        item.classList.remove('drag-over');
-        const toId = item.dataset.page;
-        if (!draggedPageId || !toId || draggedPageId === toId) return;
-
-        const fromEl = document.querySelector(`.nav-item[data-page="${draggedPageId}"]`);
-        if (!fromEl) return;
-
-        if (fromEl.parentElement !== item.parentElement) return;
-
-        const rect = item.getBoundingClientRect();
-        const midY = rect.top + rect.height / 2;
-        if (e.clientY < midY) {
-            item.parentElement.insertBefore(fromEl, item);
-        } else {
-            item.parentElement.insertBefore(fromEl, item.nextSibling);
-        }
-
-        syncPageOrderFromDOM();
-        savePageOrderToServer();
-    });
-}
-
-function syncPageOrderFromDOM() {
-    pageOrder = {};
-    let index = 0;
-    document.querySelectorAll('.nav-item').forEach(item => {
-        const id = item.dataset.page;
-        if (id) {
-            pageOrder[id] = index;
-            index++;
-        }
-    });
-}
-
-async function savePageOrderToServer() {
-    const token = getSessionToken();
-    try {
-        await fetch('/api/content', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + token
-            },
-            body: JSON.stringify({ type: 'pageOrder', pageOrder })
-        });
-    } catch (e) {}
-}
 
 document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('newPageBtn').addEventListener('click', openNewPageModal);
@@ -1216,6 +1413,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('pageSettingsModal').addEventListener('click', function(e) {
         if (e.target === this) closePageSettingsModal();
+    });
+
+    document.getElementById('newCollapsibleBtn').addEventListener('click', openNewCollapsibleModal);
+    document.getElementById('newCollapsibleModalClose').addEventListener('click', closeNewCollapsibleModal);
+    document.getElementById('newCollapsibleCancelBtn').addEventListener('click', closeNewCollapsibleModal);
+    document.getElementById('newCollapsibleSaveBtn').addEventListener('click', createNewCollapsible);
+
+    document.getElementById('newCollapsibleModal').addEventListener('click', function(e) {
+        if (e.target === this) closeNewCollapsibleModal();
+    });
+
+    document.getElementById('newCategoryBtn').addEventListener('click', openNewCategoryModal);
+    document.getElementById('newCategoryModalClose').addEventListener('click', closeNewCategoryModal);
+    document.getElementById('newCategoryCancelBtn').addEventListener('click', closeNewCategoryModal);
+    document.getElementById('newCategorySaveBtn').addEventListener('click', createNewCategory);
+
+    document.getElementById('newCategoryModal').addEventListener('click', function(e) {
+        if (e.target === this) closeNewCategoryModal();
     });
 
     initDragAndDrop();

@@ -58,55 +58,12 @@
 
     <div class="main-container">
         <aside class="sidebar">
-            <nav class="sidebar-nav">
-                <div class="nav-section">
-                    <div class="nav-section-title">Introduction</div>
-                    <a href="#welcome" class="nav-item active" data-page="welcome">
-                        <span class="nav-icon"><img src="assets/icons/wave.svg" alt=""></span>
-                        Welcome
-                    </a>
-                    <a href="#staff-welcome" class="nav-item auth-required" data-page="staff-welcome">
-                        <span class="nav-icon"><img src="assets/icons/wave.svg" alt=""></span>
-                        Staff Welcome
-                    </a>
-                    <a href="#hr-welcome" class="nav-item highrank-required" data-page="hr-welcome">
-                        <span class="nav-icon"><img src="assets/icons/wave.svg" alt=""></span>
-                        HR Welcome
-                    </a>
-                    <a href="#data-management" class="nav-item editor-required" data-page="data-management">
-                        <span class="nav-icon"><img src="assets/icons/clipboard.svg" alt=""></span>
-                        Data Management
-                    </a>
-                </div>
-                <div class="nav-section staff-required-section">
-                    <div class="nav-section-title">Staff Guides</div>
-                    <a href="#staff-guide-1" class="nav-item staff-required" data-page="staff-guide-1">
-                        <span class="nav-icon"><img src="assets/icons/guidelines.svg" alt=""></span>
-                        Staff Guide Overview
-                    </a>
-                </div>
-                <div class="nav-section highrank-required-section">
-                    <div class="nav-section-title">High Rank Guides</div>
-                    <a href="#high-rank" class="nav-item highrank-required" data-page="high-rank">
-                        <span class="nav-icon"><img src="assets/icons/high-rank.svg" alt=""></span>
-                        High Rank Intro
-                    </a>
-                    <a href="#duties" class="nav-item highrank-required" data-page="duties">
-                        <span class="nav-icon"><img src="assets/icons/duties.svg" alt=""></span>
-                        Weekly Duties
-                    </a>
-                    <a href="#expectations" class="nav-item highrank-required" data-page="expectations">
-                        <span class="nav-icon"><img src="assets/icons/expectations.svg" alt=""></span>
-                        Expectations
-                    </a>
-                    <a href="#resources" class="nav-item highrank-required" data-page="resources">
-                        <span class="nav-icon"><img src="assets/icons/resources.svg" alt=""></span>
-                        Resources
-                    </a>
-                </div>
+            <nav class="sidebar-nav" id="sidebarNav">
             </nav>
             <div class="sidebar-bottom editor-only" id="sidebarBottom">
                 <button class="delete-page-btn" id="deletePageBtn">Delete This Page</button>
+                <button class="new-category-btn" id="newCategoryBtn">+ New Category</button>
+                <button class="new-collapsible-btn" id="newCollapsibleBtn">+ New Collapsible</button>
                 <button class="new-page-btn" id="newPageBtn">+ New Page</button>
             </div>
         </aside>
@@ -189,9 +146,6 @@
                 <div class="new-page-field">
                     <label for="newPageCategory">Category</label>
                     <select id="newPageCategory">
-                        <option value="Introduction">Introduction</option>
-                        <option value="Staff Guides">Staff Guides</option>
-                        <option value="High Rank Guides">High Rank Guides</option>
                     </select>
                 </div>
                 <div class="new-page-field">
@@ -233,6 +187,57 @@
             <div class="edit-modal-footer">
                 <button class="edit-cancel-btn" id="pageSettingsCancelBtn">Cancel</button>
                 <button class="edit-save-btn" id="pageSettingsSaveBtn">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="page-settings-modal-overlay" id="newCollapsibleModal">
+        <div class="new-page-modal">
+            <div class="edit-modal-header">
+                <h3>New Collapsible Category</h3>
+                <button class="edit-modal-close" id="newCollapsibleModalClose">&times;</button>
+            </div>
+            <div class="edit-modal-body">
+                <div class="new-page-field">
+                    <label for="newCollapsibleId">Shortcode ID</label>
+                    <input type="text" id="newCollapsibleId" placeholder="e.g. training_modules">
+                </div>
+                <div class="new-page-field">
+                    <label for="newCollapsibleTitle">Display Title</label>
+                    <input type="text" id="newCollapsibleTitle" placeholder="e.g. Training Modules">
+                </div>
+            </div>
+            <div class="edit-modal-footer">
+                <button class="edit-cancel-btn" id="newCollapsibleCancelBtn">Cancel</button>
+                <button class="edit-save-btn" id="newCollapsibleSaveBtn">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="page-settings-modal-overlay" id="newCategoryModal">
+        <div class="new-page-modal">
+            <div class="edit-modal-header">
+                <h3>New Category</h3>
+                <button class="edit-modal-close" id="newCategoryModalClose">&times;</button>
+            </div>
+            <div class="edit-modal-body">
+                <div class="new-page-field">
+                    <label for="newCategoryName">Category Name</label>
+                    <input type="text" id="newCategoryName" placeholder="e.g. Intern Guides">
+                </div>
+                <div class="new-page-field">
+                    <label for="newCategoryVisibility">Visibility</label>
+                    <select id="newCategoryVisibility">
+                        <option value="auth">All Authenticated</option>
+                        <option value="staff">Staff+</option>
+                        <option value="highrank">High Rank+</option>
+                        <option value="editor">Editor Only</option>
+                    </select>
+                </div>
+            </div>
+            <div class="edit-modal-footer">
+                <button class="edit-cancel-btn" id="newCategoryCancelBtn">Cancel</button>
+                <button class="edit-save-btn" id="newCategorySaveBtn">Create</button>
             </div>
         </div>
     </div>
