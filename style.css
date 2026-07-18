@@ -379,6 +379,7 @@ body {
     padding-bottom: 80px;
     flex: 1;
     overflow-y: auto;
+    width: 150%;
 }
 
 .sidebar {
