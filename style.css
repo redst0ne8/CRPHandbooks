@@ -1158,3 +1158,21 @@ body.role-editor .sidebar-bottom.editor-only {
 .nav-item.custom-page-item {
     display: flex;
 }
+
+.page-settings-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 500;
+    justify-content: center;
+    align-items: center;
+}
+
+.page-settings-modal-overlay.visible {
+    display: flex;
+}
