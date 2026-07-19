@@ -1278,6 +1278,7 @@ body.role-editor .sidebar-bottom.editor-only {
     padding: 0.4rem 0.5rem;
     cursor: pointer;
     transition: background 0.2s;
+    margin-right: 0.75rem;
 }
 
 .hamburger-btn span {
