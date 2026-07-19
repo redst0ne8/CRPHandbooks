@@ -1265,3 +1265,244 @@ body.role-editor .sidebar-bottom.editor-only {
 .page-settings-modal-overlay.visible {
     display: flex;
 }
+
+/* Hamburger button */
+.hamburger-btn {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    padding: 0.4rem 0.5rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.hamburger-btn span {
+    display: block;
+    width: 18px;
+    height: 2px;
+    background: #ffffff;
+    border-radius: 1px;
+    transition: all 0.25s;
+}
+
+.hamburger-btn.active span:nth-child(1) {
+    transform: rotate(45deg) translate(4px, 4px);
+}
+.hamburger-btn.active span:nth-child(2) {
+    opacity: 0;
+}
+.hamburger-btn.active span:nth-child(3) {
+    transform: rotate(-45deg) translate(4px, -4px);
+}
+
+/* Sidebar overlay */
+.sidebar-overlay {
+    display: none;
+}
+
+/* ===========================
+   TABLET (<= 900px)
+   =========================== */
+@media (max-width: 900px) {
+    .brand-name {
+        font-size: 1rem;
+    }
+
+    .content {
+        padding-left: 2.5rem;
+    }
+}
+
+/* ===========================
+   MOBILE (<= 768px)
+   =========================== */
+@media (max-width: 768px) {
+    .hamburger-btn {
+        display: flex;
+    }
+
+    .brand-name {
+        font-size: 0.9rem;
+    }
+
+    .search-container {
+        max-width: 200px;
+    }
+
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: -280px;
+        bottom: 0;
+        width: 260px;
+        border-radius: 0;
+        z-index: 150;
+        transition: left 0.3s ease;
+        max-height: none;
+    }
+
+    .sidebar.mobile-open {
+        left: 0;
+    }
+
+    .sidebar-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 140;
+    }
+
+    .sidebar-overlay.visible {
+        display: block;
+    }
+
+    .main-container {
+        margin-top: 56px;
+        padding: 12px;
+        padding-bottom: 70px;
+    }
+
+    .content {
+        padding-left: 0;
+        padding: 1.25rem 0.5rem 0;
+        max-width: 100%;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+    }
+
+    .title-icon {
+        width: 26px;
+        height: 26px;
+    }
+
+    .content-body {
+        font-size: 0.95rem;
+    }
+
+    .content-body h1 {
+        font-size: 1.4rem;
+    }
+
+    .content-body h2 {
+        font-size: 1.2rem;
+    }
+
+    .content-body h3 {
+        font-size: 1.05rem;
+    }
+
+    .top-nav {
+        padding: 0.5rem 0.75rem;
+    }
+
+    .nav-center {
+        display: none;
+    }
+
+    .search-container {
+        position: fixed;
+        top: 56px;
+        left: 0;
+        right: 0;
+        max-width: none;
+        z-index: 99;
+        padding: 0.5rem 0.75rem;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(10px);
+        display: none;
+    }
+
+    .pagination-buttons {
+        grid-template-columns: 1fr;
+    }
+
+    .pagination-meta {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .pagination-actions {
+        gap: 0.75rem;
+    }
+
+    .edit-modal {
+        width: 95%;
+        max-height: 90vh;
+    }
+
+    .new-page-modal {
+        width: 95%;
+    }
+
+    .edit-field textarea {
+        min-height: 200px;
+    }
+
+    .welcome-text {
+        font-size: 1.3rem;
+    }
+
+    .welcome-avatar {
+        width: 72px;
+        height: 72px;
+    }
+
+    .footer {
+        padding: 0.8rem;
+        font-size: 0.75rem;
+    }
+
+    .nav-item {
+        padding: 0.65rem 1.25rem;
+    }
+
+    .nav-section-title {
+        padding: 0.4rem 1.25rem;
+    }
+}
+
+/* ===========================
+   SMALL MOBILE (<= 480px)
+   =========================== */
+@media (max-width: 480px) {
+    .brand-name {
+        display: none;
+    }
+
+    .logo {
+        width: 32px;
+        height: 32px;
+    }
+
+    .page-title {
+        font-size: 1.5rem;
+    }
+
+    .content-body {
+        font-size: 0.9rem;
+        line-height: 1.6;
+    }
+
+    .content-body p {
+        margin-bottom: 0.75rem;
+    }
+
+    .pagination-back,
+    .pagination-next {
+        padding: 1rem;
+    }
+
+    .pagination-title {
+        font-size: 0.85rem;
+    }
+}

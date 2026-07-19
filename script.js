@@ -1333,6 +1333,31 @@ document.addEventListener('DOMContentLoaded', function() {
         updateAuthUI();
     });
 
+    const hamburgerBtn = document.getElementById('hamburgerBtn');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+    const sidebar = document.querySelector('.sidebar');
+
+    hamburgerBtn.addEventListener('click', function() {
+        sidebar.classList.toggle('mobile-open');
+        sidebarOverlay.classList.toggle('visible');
+        hamburgerBtn.classList.toggle('active');
+    });
+
+    sidebarOverlay.addEventListener('click', function() {
+        sidebar.classList.remove('mobile-open');
+        sidebarOverlay.classList.remove('visible');
+        hamburgerBtn.classList.remove('active');
+    });
+
+    sidebarNav.addEventListener('click', function(e) {
+        const navItem = e.target.closest('.nav-item');
+        if (navItem && window.innerWidth <= 768) {
+            sidebar.classList.remove('mobile-open');
+            sidebarOverlay.classList.remove('visible');
+            hamburgerBtn.classList.remove('active');
+        }
+    });
+
     initSearch();
     checkAuth();
 });
